@@ -17,4 +17,4 @@ class SignUpRequest(BaseModel):
 
 class LogInRequest(BaseModel):
     email: EmailStr
-    password: constr(min_length=8, max_length=255)
+    password: str

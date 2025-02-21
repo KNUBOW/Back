@@ -1,5 +1,5 @@
 # SQLAlchemy ORM을 사용하여 cookai와 User 데이터를 데이터베이스에서 조회, 저장, 수정, 삭제 하는 기능을 제공하는 Repository 패턴
-from sqlite3 import IntegrityError
+from sqlalchemy.exc import IntegrityError
 
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session

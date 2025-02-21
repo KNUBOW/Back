@@ -13,3 +13,6 @@ class UserSchema(BaseModel):
 
 
     model_config = {"from_attributes": True}
+
+class JWTResponse(BaseModel):
+    access_token:str

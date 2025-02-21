@@ -32,10 +32,10 @@ class UserService:
             hashed_password.encode(self.encoding)
         )
 
-    def create_jwt(self, username: str) -> str:
+    def create_jwt(self, email: str) -> str:
         return jwt.encode(
             {
-                "sub": username,    # unique id
+                "sub": email,    # unique id
                 "exp": datetime.now() + timedelta(days=1),  #토큰 유효기간 1일
             },
             self.secret_key,
@@ -47,4 +47,4 @@ class UserService:
             access_token, self.secret_key, algorithms=[self.jwt_algorithm]
         )
         # expire (만료)
-        return payload["sub"] # username
+        return payload["sub"] # email
