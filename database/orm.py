@@ -11,7 +11,7 @@ from schema.request import IngredientRequest
 
 Base = declarative_base()
 
-def get_kst_now():
+def get_kst_now():  #데이터베이스 created_at 저장 시 시차 조정
     kst = pytz.timezone("Asia/Seoul")
     return datetime.now(kst)
 
@@ -37,7 +37,7 @@ class User(Base):   #유저 관련 테이블 생성
             birth=birth,
             gender=gender
         )
-    #릴레이션 정의
+    #릴레이션 정의 cascade설정, 계정 삭제 시 관련 데이터 삭제
     ingredients = relationship("Ingredient", back_populates="user", cascade="all, delete-orphan")
 
 
@@ -45,7 +45,7 @@ class Ingredient(Base): #식재료 관련 테이블 생성
     __tablename__ = "ingredients"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)   #외래키 참조
     name = Column(String(50), nullable=False)
     expiration_date = Column(Date)
     created_at = Column(TIMESTAMP, default=get_kst_now, nullable=False)

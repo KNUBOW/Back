@@ -1,6 +1,6 @@
-#기능 성공 후 뜰 메세지
+#기능 성공 후 출력 메세지
 from datetime import date
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -19,8 +19,11 @@ class JWTResponse(BaseModel):
     access_token:str
 
 class IngredientSchema(BaseModel):
-    id: int
+    user_id: int
     name: str
     expiration_date: Optional[date] = Field(None)
 
     model_config = {"from_attributes": True}
+
+class IngredientListSchema(BaseModel):
+    ingredients: List[IngredientSchema]

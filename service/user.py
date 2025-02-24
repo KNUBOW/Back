@@ -24,7 +24,7 @@ class UserService:
             hashed_password.encode(self.encoding)
         )
 
-    def create_jwt(self, email: str) -> str:
+    def create_jwt(self, email: str) -> str:    #jwt 암호화 값
         return jwt.encode(
             {
                 "sub": email,    # unique id
@@ -34,7 +34,7 @@ class UserService:
             algorithm=self.jwt_algorithm,
         )
 
-    def decode_jwt(self, access_token: str):
+    def decode_jwt(self, access_token: str):    #jwt 복호화 값
         payload: dict = jwt.decode(
             access_token, self.secret_key, algorithms=[self.jwt_algorithm]
         )

@@ -21,9 +21,9 @@ class LogInRequest(BaseModel):
 
 class IngredientRequest(BaseModel):
     name: str
-    expiration_date: Optional[date] = None
+    expiration_date: Optional[date] = None  #유통기한 관련 expiration_date의 속성이 사라져도 허용하는 코드
 
-    @field_validator("expiration_date", mode="before")  #유통기한 관련에서 ""도 허용하는 코드
+    @field_validator("expiration_date", mode="before")  #유통기한 관련 ""도 허용하는 코드
     @classmethod
     def validate_expiration_date(cls, v):
         if v == "":  # 빈 문자열이면 None으로 변환

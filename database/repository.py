@@ -45,7 +45,7 @@ class IngredientRepository:
         self.session.refresh(instance=ingredient)
         return ingredient
 
-        # 중복 확인
+        # 본인의 식재료만 조회하도록 설정
     def get_ingredient_by_name(self, user_id: int, name: str) -> Optional[Ingredient]:
         stmt = select(Ingredient).where(Ingredient.user_id == user_id, Ingredient.name == name)
         return self.session.scalars(stmt).first()  # 있으면 Ingredient 객체, 없으면 None 반환
@@ -53,5 +53,14 @@ class IngredientRepository:
     def get_ingredients(self) -> List[Ingredient]:
         return list(self.session.scalars(select(Ingredient)))
 
-    def delete_ingredients(self, ingredient_id):
-        pass
+    def delete_ingredient(self, user_id: int, ingredient_name: str):
+        ingredient = self.session.scalar(
+            select(Ingredient).where(   #본인의 식재료만 삭제하도록 설정
+                Ingredient.name == ingredient_name, Ingredient.user_id == user_id
+            )
+        )
+        if not ingredient:
+            return False
+        self.session.delete(ingredient)
+        self.session.commit()
+        return True
