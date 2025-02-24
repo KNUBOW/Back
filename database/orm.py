@@ -7,6 +7,7 @@ from sqlalchemy.orm import declarative_base, relationship
 import pytz
 from datetime import datetime
 
+from schema.request import IngredientRequest
 
 Base = declarative_base()
 
@@ -14,7 +15,7 @@ def get_kst_now():
     kst = pytz.timezone("Asia/Seoul")
     return datetime.now(kst)
 
-class User(Base):
+class User(Base):   #유저 관련 테이블 생성
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -36,4 +37,26 @@ class User(Base):
             birth=birth,
             gender=gender
         )
+    #릴레이션 정의
+    ingredients = relationship("Ingredient", back_populates="user", cascade="all, delete-orphan")
 
+
+class Ingredient(Base): #식재료 관련 테이블 생성
+    __tablename__ = "ingredients"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(50), nullable=False)
+    expiration_date = Column(Date)
+    created_at = Column(TIMESTAMP, default=get_kst_now, nullable=False)
+
+    @classmethod
+    def create(cls, request: IngredientRequest, user_id: int) -> "Ingredient":
+        return cls(
+            user_id=user_id,
+            name=request.name,
+            expiration_date=request.expiration_date
+        )
+
+    #릴레이션 정의
+    user = relationship("User", back_populates="ingredients")

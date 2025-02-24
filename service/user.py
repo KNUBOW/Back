@@ -1,14 +1,6 @@
-import time
-
 import bcrypt
-import random
 from jose import jwt
 from datetime import datetime, timedelta
-from fastapi import HTTPException
-
-from database.orm import User
-from database.repository import UserRepository
-from schema.request import SignUpRequest
 
 
 class UserService:

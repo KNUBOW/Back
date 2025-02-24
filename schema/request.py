@@ -1,8 +1,8 @@
 # 테이블에 컬럼별 Request 양식
 # pydantic에서 이메일 형식을 사용하려면 pip install email-validator 설치해야함.
-from pydantic import BaseModel, EmailStr, constr
+from pydantic import BaseModel, EmailStr, constr, field_validator
 from datetime import date
-from typing import Literal
+from typing import Literal, Optional
 
 
 class SignUpRequest(BaseModel):
@@ -18,3 +18,14 @@ class SignUpRequest(BaseModel):
 class LogInRequest(BaseModel):
     email: EmailStr
     password: str
+
+class IngredientRequest(BaseModel):
+    name: str
+    expiration_date: Optional[date] = None
+
+    @field_validator("expiration_date", mode="before")  #유통기한 관련에서 ""도 허용하는 코드
+    @classmethod
+    def validate_expiration_date(cls, v):
+        if v == "":  # 빈 문자열이면 None으로 변환
+            return None
+        return v

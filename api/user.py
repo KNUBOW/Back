@@ -39,10 +39,6 @@ def user_sign_up_handler(
         # 데이터베이스 관련 에러 발생
         raise HTTPException(status_code=500, detail="데이터베이스 관련 오류 발생(docker, mysql 등 확인)")
 
-    except Exception as e:
-        # 알 수 없는 에러 처리
-        raise HTTPException(status_code=500, detail="회원가입 중 오류가 발생했습니다.")
-
 @router.post("/log-in")
 def user_log_in_handler(
         request: LogInRequest,
