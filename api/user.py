@@ -1,4 +1,6 @@
 #유저 관리
+import os
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from core.security import get_access_token
@@ -8,8 +10,14 @@ from service.user import UserService
 from schema.response import UserSchema, JWTResponse
 from database.repository import UserRepository
 from sqlalchemy.exc import OperationalError
+from core.config import Settings
+
 
 router = APIRouter(prefix="/users")
+
+KAKAO_CLIENT_ID = Settings.KAKAO_CLIENT_ID
+KAKAO_REDIRECT_URI = Settings.KAKAO_REDIRECT_URI
+
 
 @router.post("/sign-up", status_code=201)
 def user_sign_up_handler(
@@ -59,3 +67,4 @@ def user_log_in_handler(
     access_token: str = user_service.create_jwt(email=user.email)
 
     return JWTResponse(access_token=access_token)
+

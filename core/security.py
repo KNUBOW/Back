@@ -10,6 +10,7 @@ def get_access_token(
     if auth_header is None:
         raise HTTPException(
             status_code=401,
-            detail="Not Authorized",    #인증 안된 상태
+            detail="jwt 토큰 없음",    #인증 안된 상태
         )
     return auth_header.credentials # access_token
+
