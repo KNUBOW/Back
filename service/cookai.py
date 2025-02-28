@@ -1,51 +1,74 @@
 import requests
 import json
-
 from core.config import Settings
-
+from database.repository import UserRepository
+from service.user import UserService
 
 class CookAIService:
-    ollama_url = Settings.ollama_url
-    model_name = Settings.model_name
-    num_predict: int = 1500  #최대 토큰 수 지정
+    def __init__(self, user_service: UserService, user_repo: UserRepository, access_token: str):
+        self.ollama_url = Settings.ollama_url
+        self.model_name = Settings.model_name
+        self.num_predict = 1500  # 최대 토큰 수 지정
+        self.user_service = user_service
+        self.user_repo = user_repo
+        self.access_token = access_token
 
-    prompt = (f"당신은 AI 셰프입니다. 나는 현재 다음과 같은 식재료를 가지고 있습니다: {user_ingredients}."
-              f"저의 성별과 나이는 ~~하며, 좋아할 만한 음식을 추천해줘"
-              f"내가 가진 재료만으로 만들 수 있는 요리 목록을 제공해 주세요. "
-              f"각 요리에 대해 아래 정보를 포함하여 JSON 형식으로 응답해주세요:\n"
-              f"- 요리 이름\n"
-              f"- 요약 설명\n"
-              f"- 필요 재료 리스트\n"
-              f"- 조리법\n"
-              f"- 예상 칼로리 정보\n\n"
-              f"응답 예시:\n"
-              f"{{'recipes': [\n"
-              f"    {{'name': '토마토 파스타', 'description': '상큼한 토마토 베이스의 파스타', "
-              f"'ingredients': ['토마토', '파스타', '마늘'], 'instructions': '1. ... 2. ...', 'calories': 450}},\n"
-              f"    {{'name': '비건 샐러드', 'description': '신선한 채소로 만든 건강한 샐러드', "
-              f"'ingredients': ['양상추', '토마토', '오이'], 'instructions': '1. ... 2. ...', 'calories': 200}}\n"
-              f"]}}")
-    '''
-    1) 현재 내가 가지고 있는 재료들을(또는 추가할 건지) 
-    2) 사용자의 음식 선호도에 취합하여(비건인지 아닌지, 매운 맛을 좋아하는지 안좋아하는지, 특정 나라의 식문화를 좋아한다던지 ex)양식,한식,중식)
-    3) 식단을 하는 중이라면 칼로리에 대한 제한과, 탄단지 비율 설정
-    4) 이걸로 만들 수 있는 요리들을 리스트로 알려주고
-    5) 요리에 대한 레시피를 종류별로 받음
-    '''
+    def get_user_ingredients(self): #현재 로그인한 사용자의 식재료 목록을 조회
+        email = self.user_service.decode_jwt(access_token=self.access_token)
+        user = self.user_repo.get_user_by_email(email=email)
+        if not user:
+            raise Exception("User Not Found")
+        return [ingredient.name for ingredient in user.ingredients]
 
-    payload = {
-        "model": model_name,
-        "prompt": prompt,
-        "stream": False,
-        "options": {"num_predict": num_predict}
-    }
+    def get_suggest_recipes(self):    #사용자가 만들 수 있는 요리 리스트들을 추천하고 저장함.
+        user_ingredients = self.get_user_ingredients()  # 사용자의 식재료 가져오기
 
-    response = requests.post(ollama_url, json=payload)
+        prompt = (
+            "당신은 요리 레시피 전문가입니다. "
+            "사용자가 제공한 식재료 목록을 기반으로 만들 수 있는 요리와, "
+            "일부 재료를 추가하면 만들 수 있는 요리를 총 10개 추천해주세요."
+            "최대한 식재료 목록을 기반으로 만들 수 있는게 많을수록 좋으며 도저히 만들기 힘들다고 가정할 떄, 일부 재료 추가를 추천해주세요. "
+            "응답은 반드시 JSON 형식으로 작성해야 합니다.\n\n"
 
-    if response.status_code == 200:
-        result = response.json()
-        print("🔥 Ollama 응답:")
-        print(result["response"])  # 모델이 생성한 텍스트 출력
-    else:
-        print(f"❌ 오류 발생: {response.status_code}")
-        print(response.text)
+            "## 요구사항\n"
+            "- '현재 가지고 있는 재료만으로 만들 수 있는 요리'와 "
+            "'추가 재료가 필요한 요리'를 구분해서 제공하세요.\n"
+            "- 추가 재료가 필요한 경우, 부족한 재료 목록도 함께 포함하세요.\n"
+            "- JSON 형식으로 응답해야 하며, 아래의 예제 형식을 따르세요.\n\n"
+
+            f"### 입력된 사용자의 식재료: {json.dumps(user_ingredients, ensure_ascii=False)}\n\n"
+
+            "## 응답 JSON 예시"
+            "{"
+            '  "recipes": ['
+            '    {'
+            '      "food": "김치볶음밥"'
+            '      "status": "true",'
+            '    },'
+            '    {'
+            '      "food": "토마토파스타",'
+            '      "status": "false",'
+            '      "missing_ingredients": ["토마토"]'
+            '    }'
+            '  ]'
+            "}"
+        )
+
+        payload = {
+            "model": self.model_name,
+            "prompt": prompt,
+            "stream": False,
+            "options": {"num_predict": self.num_predict},
+        }
+
+        response = requests.post(self.ollama_url, json=payload)
+
+        if response.status_code == 200:
+            result = response.json()
+            return result["response"]  # 모델이 생성한 텍스트 반환
+        else:
+            raise Exception(f"❌ Ollama 오류: {response.status_code} - {response.text}")
+
+
+    def food_recipe(self):    #저장된 요리 리스트들의 레시피를 설명해주고 저장함.
+        pass

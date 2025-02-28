@@ -1,13 +1,14 @@
 import bcrypt
 from jose import jwt
 from datetime import datetime, timedelta
+from core.config import Settings
 
 
 class UserService:
 
-    encoding: str = ""
-    secret_key: str = ""
-    jwt_algorithm: str = ""
+    encoding = Settings.encoding
+    secret_key = Settings.secret_key
+    jwt_algorithm = Settings.jwt_algorithm
 
     def hash_password(self, plain_password: str) -> str:    #암호 해싱
         hashed_password: bytes = bcrypt.hashpw(
