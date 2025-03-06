@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+*.log
+
+#환경 파일들
+.env
+
+# OS/디렉토리별 캐시
+.DS_Store
+Thumbs.db
+
+# IDE 설정
+.idea/
