@@ -21,4 +21,4 @@ def hello_world():
 
 @app.get("/ping")
 def hello_world():
-    return {"Hello":"World!"}
+    return {"Ping":"Pong!"}
