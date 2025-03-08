@@ -61,3 +61,4 @@ class Ingredient(Base): #식재료 관련 테이블 생성
 
     #릴레이션 정의
     user = relationship("User", back_populates="ingredients")
+
