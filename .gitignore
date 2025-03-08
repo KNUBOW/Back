@@ -15,6 +15,3 @@ Thumbs.db
 
 # IDE 설정
 .idea/
-
-#docker 관련
-docker-compose.yml

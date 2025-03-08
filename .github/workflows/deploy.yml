@@ -32,11 +32,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            # 최신 이미지를 pull
             docker pull ${{ secrets.DOCKER_USERNAME }}/capstone:latest
-            
-            # 실행 중인 컨테이너가 있으면 종료하고 삭제
-            docker ps -q -f name=capstone | grep -q . && docker stop capstone && docker rm capstone || echo "No container to stop or remove"
-            
-            # 새로운 컨테이너 실행 (자동 재시작 옵션 추가)
-            docker run -d --name capstone -p 80:8000 --restart always ${{ secrets.DOCKER_USERNAME }}/capstone:latest
+            docker stop capstone || true
+            docker rm capstone || true
+            docker run -d --name capstone -p 80:8000 ${{ secrets.DOCKER_USERNAME }}/capstone:latest
