@@ -21,8 +21,8 @@ jobs:
       # ✅ Docker 이미지 빌드 및 푸시
       - name: Build and push Docker image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/myapp:latest .
-          docker push ${{ secrets.DOCKER_USERNAME }}/myapp:latest
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/capstone-fastapi:latest .
+          docker push ${{ secrets.DOCKER_USERNAME }}/capstone-fastapi:latest
 
       # ✅ 서버에 SSH 접속 후 컨테이너 업데이트
       - name: Deploy to Server
@@ -32,7 +32,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            docker pull ${{ secrets.DOCKER_USERNAME }}/myapp:latest
-            docker stop myapp || true
-            docker rm myapp || true
-            docker run -d --name myapp -p 80:8000 ${{ secrets.DOCKER_USERNAME }}/myapp:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/capstone:latest
+            docker stop capstone || true
+            docker rm capstone || true
+            docker run -d --name capstone -p 80:8000 ${{ secrets.DOCKER_USERNAME }}/capstone:latest
