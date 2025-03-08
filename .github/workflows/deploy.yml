@@ -21,8 +21,8 @@ jobs:
       # ✅ Docker 이미지 빌드 및 푸시
       - name: Build and push Docker image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/capstone-fastapi:latest .
-          docker push ${{ secrets.DOCKER_USERNAME }}/capstone-fastapi:latest
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/capstone:latest .
+          docker push ${{ secrets.DOCKER_USERNAME }}/capstone:latest
 
       # ✅ 서버에 SSH 접속 후 컨테이너 업데이트
       - name: Deploy to Server
