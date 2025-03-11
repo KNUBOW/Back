@@ -18,4 +18,3 @@ app.include_router(cookai.router)
 @app.get("/")
 def hello_world():
     return {"Hello":"World!"}
-
