@@ -56,7 +56,7 @@ def cooking_recipe(
     cook_ai = CookAIService(user_service=user_service, user_repo=user_repo, access_token=access_token)
 
     # AI에게 요리 레시피 요청
-    response = cook_ai.get_food_recipe(food=request.food)
+    response = cook_ai.get_food_recipe(food=request.food, use_ingredients=request.use_ingredients)
 
     if not response:
         raise HTTPException(status_code=500, detail="AI로부터 레시피 응답이 비어 있습니다.")
@@ -76,3 +76,17 @@ def cooking_recipe(
         return {"error": "JSON 파싱 오류", "raw_response": response_text}
     except KeyError as e:
         return {"error": f"응답 처리 중 필요한 데이터 누락: {str(e)}", "raw_response": response_text}
+
+@router.post("/quick")  # Chat 형식으로 요리 레시피 제공
+def cooking_recipe(
+    access_token: str = Depends(get_access_token),
+    user_service: UserService = Depends(),
+    user_repo: UserRepository = Depends(),
+):
+    cook_ai = CookAIService(user_service=user_service, user_repo=user_repo, access_token=access_token)
+    response = cook_ai.get_quick_recipe()
+
+    if not response:
+        raise HTTPException(status_code=500, detail="AI 응답이 비어 있습니다.")
+
+    return {"message": response}  # Chat 스타일 응답 (JSON)

@@ -16,4 +16,3 @@ Thumbs.db
 # IDE 설정
 .idea/
 docker-compose.yml
-docker-compose.override.yml

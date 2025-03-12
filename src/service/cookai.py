@@ -3,6 +3,7 @@ import json
 from core.config import Settings
 from database.repository import UserRepository
 from service.user import UserService
+from typing import List
 
 class CookAIService:
     def __init__(self, user_service: UserService, user_repo: UserRepository, access_token: str):
@@ -56,15 +57,14 @@ class CookAIService:
 
         elif prompt_type == "recipe":
             prompt_detail = f"""
-            당신은 요리 전문가이며, 사용자가 선택한 요리의 **상세한 레시피**를 제공합니다.  
+            당신은 요리 전문가이며, 사용자가 선택한 요리의 **초보자도 보고 따라할 수 있을정도로 섬세한 레시피**를 제공합니다.  
             아래의 JSON 형식에 맞는 데이터를 제공합니다:
             {{
               "food": "김치볶음밥",
               "use_ingredients": ["김치", "밥", "대파", "달걀", "간장"]
             }}
             🔹 **반드시 JSON 형식으로만 응답하세요.**  
-            🔹 **입력된 식재료(use_ingredients)를 최대한 활용한 요리를 생성하세요.**  
-            🔹 **조리 시간, 난이도, 필요 도구까지 포함하세요.**  
+            🔹 **입력된 식재료(use_ingredients)만 활용한 요리를 생성하세요.**    
             🔹 **추가 설명 없이 JSON 데이터만 반환하세요.**  
             ---
             ### 🍽️ 사용자가 선택한 요리
@@ -89,6 +89,37 @@ class CookAIService:
             }}
             ```
             """
+
+        elif prompt_type == "quick":
+            prompt_detail = f"""
+            당신은 사용자의 냉장고 속 재료를 기반으로 맞춤형 레시피를 추천하는 AI입니다.  
+            이 서비스는 사용자가 직접 데이터베이스에 재료를 입력하는 번거로움을 없애기 위해 만들어졌습니다.  
+            따라서 사용자가 입력하는 재료 목록만을 참고하여, 가능한 레시피를 제안해야 합니다.  
+            
+            ### 🔹 역할과 목표  
+            - 사용자가 입력한 **재료 목록**만을 기반으로 요리를 추천합니다.  
+            - **간단하고 빠르게** 만들 수 있는 레시피를 제공합니다.  
+            - 추가적인 질문 없이 한 번의 응답으로 **완성된 레시피**를 제공합니다.  
+            
+            ### 🔹 프롬프트 예시  
+            사용자가 다음과 같이 입력합니다:  
+            계란, 김치, 라면 스프, 파 있어. 뭐 만들어 먹으면 좋을까?
+            
+            당신은 이에 대해 다음과 같이 답변해야 합니다:  
+            [김치 계란 볶음밥] 🍳🔥
+            추가 필요 재료: 밥 한 공기, 간장 (선택)
+            조리 방법:
+            팬에 기름을 두르고 계란을 스크램블합니다.
+            김치를 잘게 썰어 넣고 함께 볶습니다.
+            라면 스프를 살짝 넣어 감칠맛을 더합니다.
+            밥을 넣고 잘 섞은 후 파를 넣고 마무리합니다.
+            
+            ### 🔹 추가 조건  
+            - 만약 사용자가 매우 적은 재료만 입력한다면, 최소한의 추가 재료로 만들 수 있는 요리를 추천해야 합니다.  
+            - 너무 복잡한 레시피는 제공하지 말고, 가능한 **간단한 요리** 위주로 추천하세요.
+            - 그 외의 요리와 관련된 질문이 아니라면, 재료 목록을 입력해달라고 하세요.
+            """
+
 
         else:
             raise ValueError("Invalid prompt_type. Use 'suggestion' or 'recipe'.")
@@ -118,8 +149,13 @@ class CookAIService:
         prompt = self.generate_recipe_prompt(user_ingredients, "suggestion")
         return self.call_ollama(prompt)
 
-    def get_food_recipe(self, food:str):
+    def get_food_recipe(self, food:str, use_ingredients:list):
         """선택한 요리의 레시피 설명 제공"""
         user_ingredients = self.get_user_ingredients()
         prompt = self.generate_recipe_prompt(user_ingredients, "recipe")
+        return self.call_ollama(prompt)
+
+    def get_quick_recipe(self):
+        """선택한 요리의 레시피 설명 제공"""
+        prompt = self.generate_recipe_prompt("quick")
         return self.call_ollama(prompt)
