@@ -36,9 +36,7 @@ def suggest_recipe(
 
         filtered_recipes = []
         for r in response_json["recipes"]:
-            recipe = {"food": r["food"], "status": r["status"], "use_ingredients": r["use_ingredients"]}
-            if "missing_ingredients" in r and r["missing_ingredients"]:  # 값이 있을 때만 추가
-                recipe["missing_ingredients"] = r["missing_ingredients"]
+            recipe = {"food": r["food"], "use_ingredients": r["use_ingredients"]}
             filtered_recipes.append(recipe)
 
         return {"recipes": filtered_recipes}
@@ -50,16 +48,18 @@ def suggest_recipe(
 
 @router.post("/cooking")  # POST 방식으로 요리 레시피 불러오기
 def cooking_recipe(
-    cooking_request: CookingRequest,  # POST 본문으로 받은 음식 이름
+    request: CookingRequest,
     access_token: str = Depends(get_access_token),
     user_service: UserService = Depends(),
     user_repo: UserRepository = Depends(),
 ):
     cook_ai = CookAIService(user_service=user_service, user_repo=user_repo, access_token=access_token)
-    response = cook_ai.get_food_recipe(cooking_request.food)  # 음식에 해당하는 레시피를 AI에서 받아옴
+
+    # AI에게 요리 레시피 요청
+    response = cook_ai.get_food_recipe(food=request.food)
 
     if not response:
-        raise HTTPException(status_code=500, detail="AI 응답이 비어 있습니다.")
+        raise HTTPException(status_code=500, detail="AI로부터 레시피 응답이 비어 있습니다.")
 
     # 마크다운 코드 블록 제거 (예: ```json ... ```)
     response_text = re.sub(r"^```json\n|\n```$", "", response.strip())
@@ -67,19 +67,10 @@ def cooking_recipe(
     try:
         response_json = json.loads(response_text)  # JSON 변환
 
-        if "food" not in response_json or "status" not in response_json:
-            raise HTTPException(status_code=500, detail="AI 응답에 'food' 또는 'status' 키가 없습니다.")
+        if "recipe" not in response_json:
+            raise HTTPException(status_code=500, detail="AI 응답에 'recipe' 키가 없습니다.")
 
-        # 레시피 내용 필터링
-        recipe = {
-            "food": response_json["food"],
-            "status": response_json["status"]
-        }
-
-        if "missing_ingredients" in response_json and response_json["missing_ingredients"]:
-            recipe["missing_ingredients"] = response_json["missing_ingredients"]
-
-        return recipe
+        return response_json  # 레시피 JSON 반환
 
     except json.JSONDecodeError:
         return {"error": "JSON 파싱 오류", "raw_response": response_text}

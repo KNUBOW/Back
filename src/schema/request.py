@@ -2,7 +2,7 @@
 # pydantic에서 이메일 형식을 사용하려면 pip install email-validator 설치해야함.
 from pydantic import BaseModel, EmailStr, constr, field_validator
 from datetime import date
-from typing import Literal, Optional
+from typing import Literal, Optional, List
 
 
 class SignUpRequest(BaseModel):
@@ -32,3 +32,4 @@ class IngredientRequest(BaseModel):
 
 class CookingRequest(BaseModel):
     food: str
+    use_ingredients: List[str]
