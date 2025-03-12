@@ -54,5 +54,5 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd ~/capstone  # ✅ EC2의 프로젝트 폴더로 이동
-            docker-compose pull app # ✅ 최신 Docker 이미지 가져오기
-            docker-compose up -d --force-recreate app # ✅ 컨테이너 재시작
+            docker-compose pull app # ✅ 최신 FastAPI 이미지 가져오기
+            docker-compose up -d # ✅ 컨테이너 재시작 및 docker-compose에서 변경된 점 패치함.
