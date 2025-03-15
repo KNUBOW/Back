@@ -155,7 +155,7 @@ class CookAIService:
         prompt = self.generate_recipe_prompt(user_ingredients, "recipe")
         return self.call_ollama(prompt)
 
-    def get_quick_recipe(self):
+    def get_quick_recipe(self, chat):
         """선택한 요리의 레시피 설명 제공"""
         prompt = self.generate_recipe_prompt("quick")
         return self.call_ollama(prompt)

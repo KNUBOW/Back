@@ -6,7 +6,7 @@ import re
 from core.security import get_access_token
 from database.repository import UserRepository
 from service.cookai import CookAIService
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from schema.request import CookingRequest
 
 from service.user import UserService
@@ -79,12 +79,13 @@ def cooking_recipe(
 
 @router.post("/quick")  # Chat 형식으로 요리 레시피 제공
 def cooking_recipe(
+    chat: str = Body(..., media_type="text/plain"),
     access_token: str = Depends(get_access_token),
     user_service: UserService = Depends(),
     user_repo: UserRepository = Depends(),
 ):
     cook_ai = CookAIService(user_service=user_service, user_repo=user_repo, access_token=access_token)
-    response = cook_ai.get_quick_recipe()
+    response = cook_ai.get_quick_recipe(chat)
 
     if not response:
         raise HTTPException(status_code=500, detail="AI 응답이 비어 있습니다.")

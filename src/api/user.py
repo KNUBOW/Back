@@ -143,7 +143,7 @@ async def callback(request: Request):
     print(f"🔹 Redis에 저장된 state: {saved_state}")
 
     if not saved_state:
-        raise HTTPException(status_code=400, detail="state 불일")
+        raise HTTPException(status_code=400, detail="state 불일치")
 
     # 네이버에서 발급된 액세스 토큰을 요청
     token_response = await get_naver_token(code, state)
