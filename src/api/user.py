@@ -106,22 +106,35 @@ async def get_naver_token(code: str, state: str):
         "code": code,
         "state": state,
     }
+
     async with httpx.AsyncClient() as client:
         response = await client.post(token_url, headers=headers, data=params)
-        response.raise_for_status()
-        return response.json()
+
+        if response.status_code != 200:
+            raise HTTPException(status_code=response.status_code, detail="네이버 토큰 요청 실패")
+
+        token_data = response.json()
+        if "access_token" not in token_data:
+            raise HTTPException(status_code=400, detail="네이버에서 access_token을 받지 못했습니다.")
+
+        return token_data
 
 # 네이버 사용자 정보 요청
 async def get_naver_user_info(access_token: str):
     user_info_url = "https://openapi.naver.com/v1/nid/me"
-    headers = {
-        "Authorization": f"Bearer {access_token}"
-    }
+    headers = {"Authorization": f"Bearer {access_token}"}
+
     async with httpx.AsyncClient() as client:
         response = await client.get(user_info_url, headers=headers)
-        response.encoding = "utf-8"
-        response.raise_for_status()
-        return response.json()
+
+        if response.status_code != 200:
+            raise HTTPException(status_code=response.status_code, detail="네이버 사용자 정보 요청 실패")
+
+        user_data = response.json()
+        if "response" not in user_data:
+            raise HTTPException(status_code=400, detail="네이버 사용자 정보가 없습니다.")
+
+        return user_data["response"]
 
 @router.get("/naver")
 async def root(request: Request):
@@ -134,28 +147,24 @@ async def callback(request: Request):
     code = request.query_params.get("code")
     state = request.query_params.get("state")
 
-    # Redis에서 state 검증
     redis = await get_redis()
     saved_state = await redis.get(f"naver_state:{state}")
-
-    print(f"🔹 요청된 code: {code}")
-    print(f"🔹 요청된 state: {state}")
-    print(f"🔹 Redis에 저장된 state: {saved_state}")
 
     if not saved_state:
         raise HTTPException(status_code=400, detail="state 불일치")
 
-    # 네이버에서 발급된 액세스 토큰을 요청
+    # ✅ 사용한 state 값 Redis에서 삭제
+    await redis.delete(f"naver_state:{state}")
+
+    # 네이버에서 액세스 토큰 요청
     token_response = await get_naver_token(code, state)
     access_token = token_response.get("access_token")
-    print(f"🔹 받은 access_token: {access_token}")
 
     if not access_token:
         raise HTTPException(status_code=400, detail="토큰 발급 실패")
 
-    # 액세스 토큰을 사용하여 사용자 정보를 요청
+    # 액세스 토큰으로 사용자 정보 요청
     user_info = await get_naver_user_info(access_token)
-    print(f"🔹 받은 user_info: {user_info}")
 
     return user_info
 
