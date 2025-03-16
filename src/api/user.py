@@ -4,7 +4,7 @@ import httpx
 import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse
 
 from schema.request import SignUpRequest, LogInRequest
 from database.orm import User
@@ -137,10 +137,9 @@ async def get_naver_user_info(access_token: str):
         return user_data["response"]
 
 @router.get("/naver")
-async def root(request: Request):
+async def naver_login(request: Request):
     auth_url = await get_naver_auth_url(request)
-    print(auth_url)
-    return RedirectResponse(auth_url)
+    return JSONResponse(content={"auth_url": auth_url})  # ✅ JSON으로 반환
 
 @router.get("/naver/callback")
 async def callback(request: Request):
