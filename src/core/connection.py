@@ -15,8 +15,8 @@ SessionFactory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 redis_client = redis.Redis(host=Settings.REDIS_HOST, port=Settings.REDIS_PORT, decode_responses=True)
 
 # MongoDB 연결 설정
-MONGO_URI = Settings.MONGO_URI  # 예: "mongodb://localhost:27017"
-MONGO_DB_NAME = Settings.MONGO_DB_NAME  # 예: "mydatabase"
+MONGO_URI = Settings.MONGO_URI
+MONGO_DB_NAME = Settings.MONGO_DB_NAME
 
 mongo_client = AsyncIOMotorClient(MONGO_URI)
 mongo_db = mongo_client[MONGO_DB_NAME]

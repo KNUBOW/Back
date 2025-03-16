@@ -1,7 +1,8 @@
 import bcrypt
-from jose import jwt
+from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from core.config import Settings
+from fastapi import HTTPException
 
 
 class UserService:
@@ -36,8 +37,15 @@ class UserService:
         )
 
     def decode_jwt(self, access_token: str):    #jwt 복호화 값
-        payload: dict = jwt.decode(
-            access_token, self.secret_key, algorithms=[self.jwt_algorithm]
-        )
-        # expire (만료)
-        return payload["sub"] # email
+        try:
+            payload: dict = jwt.decode(
+                access_token, self.secret_key, algorithms=[self.jwt_algorithm]
+            )
+            email = payload.get("sub")
+
+            if email is None:
+                raise HTTPException(status_code=401, detail="유효하지 않은 토큰")
+            return email
+
+        except JWTError as e:
+            raise HTTPException(status_code=401, detail="유효하지 않거나 만료된 토큰")

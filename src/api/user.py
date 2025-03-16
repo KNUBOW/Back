@@ -21,7 +21,7 @@ NAVER_REDIRECT_URI = Settings.NAVER_REDIRECT_URI
 
 router = APIRouter(prefix="/users")
 
-async def get_redis():
+async def get_redis():  #네이버에서 세션 관리하기 위해 설정
     return await aioredis.from_url(f"redis://{Settings.REDIS_HOST}:{Settings.REDIS_PORT}")
 
 @router.post("/sign-up", status_code=201)
@@ -49,8 +49,8 @@ def user_sign_up_handler(
         return UserSchema.model_validate(user)
 
     except OperationalError as e:
-        # 데이터베이스 관련 에러 발생
-        raise HTTPException(status_code=500, detail="데이터베이스 관련 오류 발생(docker, mysql 등 확인)")
+        # 컨테이너 또는 데이터베이스 관련 에러 발생
+        raise HTTPException(status_code=500, detail="컨테이너 또는 데이터베이스 관련 오류 발생(docker, mysql 등 확인)")
 
 
 @router.post("/log-in")
@@ -76,15 +76,12 @@ def user_log_in_handler(
 
 #-------------------------- 네이버 회원가입 / 로그인 --------------------------
 
-async def get_naver_auth_url(request: Request):
+async def get_naver_auth_url(request: Request): #naver 로그인 세션 보안상 자동으로 돌림.
     state = secrets.token_urlsafe(16)
 
     # Redis에 state 저장
     redis = await get_redis()
-    await redis.setex(f"naver_state:{state}", 600, "valid")  # 10분 동안 유지
-
-    print(f"🟢 생성된 state: {state}")
-
+    await redis.setex(f"naver_state:{state}", 300, "valid")  # 5분 동안 유지
     return (
         "https://nid.naver.com/oauth2.0/authorize"
         "?response_type=code"
@@ -115,7 +112,7 @@ async def get_naver_token(code: str, state: str):
 
         token_data = response.json()
         if "access_token" not in token_data:
-            raise HTTPException(status_code=400, detail="네이버에서 access_token을 받지 못했습니다.")
+            raise HTTPException(status_code=400, detail="네이버에서 access_token을 받지 못함.")
 
         return token_data
 
@@ -132,14 +129,14 @@ async def get_naver_user_info(access_token: str):
 
         user_data = response.json()
         if "response" not in user_data:
-            raise HTTPException(status_code=400, detail="네이버 사용자 정보가 없습니다.")
+            raise HTTPException(status_code=400, detail="네이버에 사용자 정보 X.")
 
         return user_data["response"]
 
 @router.get("/naver")
 async def naver_login(request: Request):
     auth_url = await get_naver_auth_url(request)
-    return JSONResponse(content={"auth_url": auth_url})  # ✅ JSON으로 반환
+    return JSONResponse(content={"auth_url": auth_url})  # Redirect에서 JSON으로 해야함. Front에서 정상적으로 전달안됨.
 
 @router.get("/naver/callback")
 async def callback(request: Request):
