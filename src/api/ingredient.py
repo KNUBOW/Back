@@ -1,5 +1,6 @@
-# api/ingredient.py
-from fastapi import APIRouter, Depends, HTTPException
+# 식재료 추가/조회/삭제 하는 식재료 관련 API
+
+from fastapi import APIRouter, Depends
 from schema.request import IngredientRequest
 from schema.response import IngredientSchema, IngredientListSchema
 from service.ingredient import IngredientService

@@ -1,93 +1,43 @@
-#사용자에게 레시피 제공해달라는 요청 받으면, 사용자가 현재 들고있는 재료를 보고, 레시피를 줌
+# foodthing API (요리 리스트 추천, 요리 레시피 제공, 빠른 레시피(챗봇) 제공)
 
-import json
-import re
-
+from fastapi import APIRouter, Depends, Body
 from core.security import get_access_token
 from database.repository import UserRepository
 from service.foodthing import CookAIService
-from fastapi import APIRouter, Depends, HTTPException, Body
 from schema.request import CookingRequest
-
 from service.user import UserService
 
 router = APIRouter(prefix="/recipe")
 
-@router.get("/suggest")  # 레시피 제안
+@router.get("/suggest", status_code=200)    #요리 레시피 리스트 추천 API
 def suggest_recipe(
     access_token: str = Depends(get_access_token),
     user_service: UserService = Depends(),
     user_repo: UserRepository = Depends(),
 ):
-    cook_ai = CookAIService(user_service=user_service, user_repo=user_repo, access_token=access_token)
-    response = cook_ai.get_suggest_recipes()  # AI에서 받은 응답
+    cook_ai = CookAIService(user_service, user_repo, access_token)
+    return cook_ai.get_suggest_recipes()  # JSON 응답
 
-    if not response:
-        raise HTTPException(status_code=500, detail="AI 응답이 비어 있습니다.")
 
-    # 마크다운 코드 블록 제거 (예: ```json ... ```)
-    response_text = re.sub(r"^```json\n|\n```$", "", response.strip())
-
-    try:
-        response_json = json.loads(response_text)  # JSON 변환
-
-        if "recipes" not in response_json:
-            raise HTTPException(status_code=500, detail="AI 응답에 'recipes' 키가 없습니다.")
-
-        filtered_recipes = []
-        for r in response_json["recipes"]:
-            recipe = {"food": r["food"], "use_ingredients": r["use_ingredients"]}
-            filtered_recipes.append(recipe)
-
-        return {"recipes": filtered_recipes}
-
-    except json.JSONDecodeError:
-        return {"error": "JSON 파싱 오류", "raw_response": response_text}
-    except KeyError as e:
-        return {"error": f"응답 처리 중 필요한 데이터 누락: {str(e)}", "raw_response": response_text}
-
-@router.post("/cooking")  # POST 방식으로 요리 레시피 불러오기
+@router.post("/cooking", status_code=200)   #요리 레시피 API
 def cooking_recipe(
-    request: CookingRequest,
-    access_token: str = Depends(get_access_token),
-    user_service: UserService = Depends(),
-    user_repo: UserRepository = Depends(),
+        request: CookingRequest,
+        access_token: str = Depends(get_access_token),
+        user_service: UserService = Depends(),
+        user_repo: UserRepository = Depends(),
 ):
-    cook_ai = CookAIService(user_service=user_service, user_repo=user_repo, access_token=access_token)
+    cook_ai = CookAIService(user_service, user_repo, access_token)
 
-    # AI에게 요리 레시피 요청
-    response = cook_ai.get_food_recipe(food=request.food, use_ingredients=request.use_ingredients)
+    # request 객체를 dict로 변환 후 service로 전달
+    request_data = request.model_dump()
+    return cook_ai.get_food_recipe(request_data)  # JSON 응답
 
-    if not response:
-        raise HTTPException(status_code=500, detail="AI로부터 레시피 응답이 비어 있습니다.")
-
-    # 마크다운 코드 블록 제거 (예: ```json ... ```)
-    response_text = re.sub(r"^```json\n|\n```$", "", response.strip())
-
-    try:
-        response_json = json.loads(response_text)  # JSON 변환
-
-        if "recipe" not in response_json:
-            raise HTTPException(status_code=500, detail="AI 응답에 'recipe' 키가 없습니다.")
-
-        return response_json  # 레시피 JSON 반환
-
-    except json.JSONDecodeError:
-        return {"error": "JSON 파싱 오류", "raw_response": response_text}
-    except KeyError as e:
-        return {"error": f"응답 처리 중 필요한 데이터 누락: {str(e)}", "raw_response": response_text}
-
-@router.post("/quick")  # Chat 형식으로 요리 레시피 제공
-def cooking_recipe(
+@router.post("/quick", status_code=200)
+def quick_recipe(
     chat: str = Body(..., media_type="text/plain"),
     access_token: str = Depends(get_access_token),
     user_service: UserService = Depends(),
     user_repo: UserRepository = Depends(),
 ):
-    cook_ai = CookAIService(user_service=user_service, user_repo=user_repo, access_token=access_token)
-    response = cook_ai.get_quick_recipe(chat)
-
-    if not response:
-        raise HTTPException(status_code=500, detail="AI 응답이 비어 있습니다.")
-
-    return {"message": response}  # Chat 스타일 응답 (JSON)
+    cook_ai = CookAIService(user_service, user_repo, access_token)
+    return cook_ai.get_quick_recipe(chat)  # JSON 응답
