@@ -13,7 +13,7 @@ class Settings:
     secret_key: str = os.getenv("SECRET_KEY")
     jwt_algorithm: str = os.getenv("JWT_ALGORITHM")
 
-    #service cookai.py
+    #service foodthing.py
     ollama_url: str = os.getenv("OLLAMA_URL")
     model_name: str = os.getenv("MODEL_NAME")
     num_predict: int = os.getenv("NUM_PREDICT")

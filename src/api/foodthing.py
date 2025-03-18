@@ -5,7 +5,7 @@ import re
 
 from core.security import get_access_token
 from database.repository import UserRepository
-from service.cookai import CookAIService
+from service.foodthing import CookAIService
 from fastapi import APIRouter, Depends, HTTPException, Body
 from schema.request import CookingRequest
 
@@ -13,7 +13,7 @@ from service.user import UserService
 
 router = APIRouter(prefix="/recipe")
 
-@router.get("/suggest")  # 레시피 추천 API
+@router.get("/suggest")  # 레시피 제안
 def suggest_recipe(
     access_token: str = Depends(get_access_token),
     user_service: UserService = Depends(),
@@ -25,12 +25,8 @@ def suggest_recipe(
     if not response:
         raise HTTPException(status_code=500, detail="AI 응답이 비어 있습니다.")
 
-    # 🔥 JSON 블록 추출 (마크다운 제거)
-    match = re.search(r"```json\n(.*?)\n```", response, re.DOTALL)
-    if match:
-        response_text = match.group(1)
-    else:
-        response_text = response.strip()
+    # 마크다운 코드 블록 제거 (예: ```json ... ```)
+    response_text = re.sub(r"^```json\n|\n```$", "", response.strip())
 
     try:
         response_json = json.loads(response_text)  # JSON 변환
@@ -40,11 +36,7 @@ def suggest_recipe(
 
         filtered_recipes = []
         for r in response_json["recipes"]:
-            recipe = {
-                "food": r["food"],
-                "use_ingredients": r["use_ingredients"],
-                "instructions": r.get("instructions", "조리법 정보 없음")
-            }
+            recipe = {"food": r["food"], "use_ingredients": r["use_ingredients"]}
             filtered_recipes.append(recipe)
 
         return {"recipes": filtered_recipes}
@@ -69,7 +61,7 @@ def cooking_recipe(
     if not response:
         raise HTTPException(status_code=500, detail="AI로부터 레시피 응답이 비어 있습니다.")
 
-    # 마크다운 코드 블록 제거
+    # 마크다운 코드 블록 제거 (예: ```json ... ```)
     response_text = re.sub(r"^```json\n|\n```$", "", response.strip())
 
     try:

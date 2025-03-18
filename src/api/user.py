@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 from schema.request import SignUpRequest, LogInRequest
 from database.orm import User
-from service.user import UserService
+from service.user import UserService, NaverAuthService
 from schema.response import UserSchema, JWTResponse
 from database.repository import UserRepository
 from sqlalchemy.exc import OperationalError
@@ -75,67 +75,9 @@ def user_log_in_handler(
     return JWTResponse(access_token=access_token)
 
 #-------------------------- 네이버 회원가입 / 로그인 --------------------------
-
-async def get_naver_auth_url(request: Request): #naver 로그인 세션 보안상 자동으로 돌림.
-    state = secrets.token_urlsafe(16)
-
-    # Redis에 state 저장
-    redis = await get_redis()
-    await redis.setex(f"naver_state:{state}", 300, "valid")  # 5분 동안 유지
-    return (
-        "https://nid.naver.com/oauth2.0/authorize"
-        "?response_type=code"
-        f"&client_id={NAVER_CLIENT_ID}"
-        f"&redirect_uri={NAVER_REDIRECT_URI}"
-        f"&state={state}"
-    )
-
-# 네이버 토큰 요청
-async def get_naver_token(code: str, state: str):
-    token_url = "https://nid.naver.com/oauth2.0/token"
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
-    params = {
-        "grant_type": "authorization_code",
-        "client_id": NAVER_CLIENT_ID,
-        "client_secret": NAVER_CLIENT_SECRET,
-        "code": code,
-        "state": state,
-    }
-
-    async with httpx.AsyncClient() as client:
-        response = await client.post(token_url, headers=headers, data=params)
-
-        if response.status_code != 200:
-            raise HTTPException(status_code=response.status_code, detail="네이버 토큰 요청 실패")
-
-        token_data = response.json()
-        if "access_token" not in token_data:
-            raise HTTPException(status_code=400, detail="네이버에서 access_token을 받지 못함.")
-
-        return token_data
-
-# 네이버 사용자 정보 요청
-async def get_naver_user_info(access_token: str):
-    user_info_url = "https://openapi.naver.com/v1/nid/me"
-    headers = {"Authorization": f"Bearer {access_token}"}
-
-    async with httpx.AsyncClient() as client:
-        response = await client.get(user_info_url, headers=headers)
-
-        if response.status_code != 200:
-            raise HTTPException(status_code=response.status_code, detail="네이버 사용자 정보 요청 실패")
-
-        user_data = response.json()
-        if "response" not in user_data:
-            raise HTTPException(status_code=400, detail="네이버에 사용자 정보 X.")
-
-        return user_data["response"]
-
 @router.get("/naver")
-async def naver_login(request: Request):
-    auth_url = await get_naver_auth_url(request)
+async def naver_login():
+    auth_url = await NaverAuthService.get_auth_url()
     return JSONResponse(content={"auth_url": auth_url})  # Redirect에서 JSON으로 해야함. Front에서 정상적으로 전달안됨.
 
 @router.get("/naver/callback")
@@ -153,14 +95,14 @@ async def callback(request: Request):
     await redis.delete(f"naver_state:{state}")
 
     # 네이버에서 액세스 토큰 요청
-    token_response = await get_naver_token(code, state)
+    token_response = await NaverAuthService.get_token(code, state)
     access_token = token_response.get("access_token")
 
     if not access_token:
         raise HTTPException(status_code=400, detail="토큰 발급 실패")
 
     # 액세스 토큰으로 사용자 정보 요청
-    user_info = await get_naver_user_info(access_token)
+    user_info = await NaverAuthService.get_user_info(access_token)
 
     return user_info
 
