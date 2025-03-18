@@ -1,7 +1,5 @@
 #유저 관리
 import aioredis
-import httpx
-import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -12,17 +10,9 @@ from service.user import UserService, NaverAuthService
 from schema.response import UserSchema, JWTResponse
 from database.repository import UserRepository
 from sqlalchemy.exc import OperationalError
-from core.config import Settings
-
-NAVER_CLIENT_ID = Settings.NAVER_CLIENT_ID
-NAVER_CLIENT_SECRET = Settings.NAVER_CLIENT_SECRET
-NAVER_REDIRECT_URI = Settings.NAVER_REDIRECT_URI
 
 
 router = APIRouter(prefix="/users")
-
-async def get_redis():  #네이버에서 세션 관리하기 위해 설정
-    return await aioredis.from_url(f"redis://{Settings.REDIS_HOST}:{Settings.REDIS_PORT}")
 
 @router.post("/sign-up", status_code=201)
 def user_sign_up_handler(
@@ -85,14 +75,7 @@ async def callback(request: Request):
     code = request.query_params.get("code")
     state = request.query_params.get("state")
 
-    redis = await get_redis()
-    saved_state = await redis.get(f"naver_state:{state}")
-
-    if not saved_state:
-        raise HTTPException(status_code=400, detail="state 불일치")
-
-    # ✅ 사용한 state 값 Redis에서 삭제
-    await redis.delete(f"naver_state:{state}")
+    await NaverAuthService.validate_state(state)
 
     # 네이버에서 액세스 토큰 요청
     token_response = await NaverAuthService.get_token(code, state)

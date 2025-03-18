@@ -1,17 +1,12 @@
 import secrets
 import httpx
-import aioredis
+from core.redis import RedisClient
 
 import bcrypt
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from core.config import Settings
 from fastapi import HTTPException
-
-
-async def get_redis():  #네이버에서 세션 관리하기 위해 설정
-    return await aioredis.from_url(f"redis://{Settings.REDIS_HOST}:{Settings.REDIS_PORT}")
-
 
 
 class UserService:
@@ -67,11 +62,10 @@ class NaverAuthService:
 
     @staticmethod
     async def get_auth_url():
-        """네이버 로그인 URL 생성 (OAuth 2.0 state 포함)"""
         state = secrets.token_urlsafe(16)
 
         # Redis에 state 저장
-        redis = await get_redis()
+        redis = await RedisClient.get_redis()
         await redis.setex(f"naver_state:{state}", 300, "valid")  # 5분 동안 유지
 
         return (
@@ -81,6 +75,15 @@ class NaverAuthService:
             f"&redirect_uri={NaverAuthService.REDIRECT_URI}"
             f"&state={state}"
         )
+
+    @staticmethod
+    async def validate_state(state: str):
+        """Redis에서 저장된 state 값 검증"""
+        redis = await RedisClient.get_redis()
+        saved_state = await redis.get(f"naver_state:{state}")
+        if not saved_state:
+            raise HTTPException(status_code=400, detail="state 불일치")
+        await redis.delete(f"naver_state:{state}")
 
     @staticmethod
     async def get_token(code: str, state: str):
