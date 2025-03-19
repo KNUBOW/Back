@@ -92,12 +92,12 @@ async def callback(
     # 액세스 토큰으로 사용자 정보 추출
     user_info = await NaverAuthService.get_user_info(access_token)
 
-    email = user_info.get("response", {}).get("email")
-    name = user_info.get("response", {}).get("name")
-    nickname = user_info.get("response", {}).get("id")
-    gender = user_info.get("response", {}).get("gender")
-    birthday = user_info.get("response", {}).get("birthday")
-    birthyear = user_info.get("response", {}).get("birthyear")
+    email = user_info.get("email")
+    name = user_info.get("name")
+    nickname = user_info.get("id")
+    gender = user_info.get("gender")
+    birthday = user_info.get("birthday")
+    birthyear = user_info.get("birthyear")
 
     # 정보 없을 시 에러 발생
     info_fields = [email, name, nickname, gender, birthday, birthyear]
@@ -125,7 +125,7 @@ async def callback(
             # 유저 정보 생성
             user = User(
                 email=email,
-                hashed_password=hashed_password,  # 기본 비밀번호 사용
+                password=hashed_password,  # 기본 비밀번호 사용
                 name=name,
                 nickname=f"naver_{nickname}",
                 birth=birth,
