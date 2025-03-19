@@ -22,7 +22,7 @@ class User(Base):   #유저 관련 테이블 생성
     email = Column(String(50), nullable=False, unique=True)
     password = Column(String(255), nullable=False)
     name = Column(String(20), nullable=False)
-    nickname = Column(String(20), nullable=False, unique=True)
+    nickname = Column(String(70), nullable=False, unique=True)
     birth = Column(Date, nullable=False)
     gender = Column(Enum("M", "F", name="gender_enum"), nullable=False)
     social_auth = Column(Enum("G", "N", "K", name="social_auth_enum"))

@@ -16,7 +16,6 @@ class Settings:
     #service foodthing.py
     ollama_url: str = os.getenv("OLLAMA_URL")
     model_name: str = os.getenv("MODEL_NAME")
-    num_predict: int = os.getenv("NUM_PREDICT")
 
     #core connection.py
     DATABASE_URL = os.getenv("DATABASE_URL")
