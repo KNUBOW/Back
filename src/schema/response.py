@@ -21,7 +21,7 @@ class JWTResponse(BaseModel):
 class IngredientSchema(BaseModel):
     user_id: int
     name: str
-    expiration_date: Optional[date] = Field(None)
+    expiration_date: Optional[date] = None
 
     model_config = {"from_attributes": True}
 

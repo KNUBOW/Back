@@ -41,3 +41,13 @@ def quick_recipe(
 ):
     cook_ai = CookAIService(user_service, user_repo, access_token)
     return cook_ai.get_quick_recipe(chat)  # JSON 응답
+
+@router.post("/search", status_code=200)
+def quick_recipe(
+    chat: str = Body(..., media_type="text/plain"),
+    access_token: str = Depends(get_access_token),
+    user_service: UserService = Depends(),
+    user_repo: UserRepository = Depends(),
+):
+    cook_ai = CookAIService(user_service, user_repo, access_token)
+    return cook_ai.get_search_recipe(chat)  # JSON 응답

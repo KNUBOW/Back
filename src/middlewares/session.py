@@ -4,7 +4,6 @@ import json
 import redis.asyncio as aioredis
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import Response
 from itsdangerous import Signer
 from core.config import Settings
 

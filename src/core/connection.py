@@ -1,29 +1,25 @@
 #MySQL 데이터베이스와 연결 설정, 세션 관리
-
-from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from core.config import Settings
 import redis
-from motor.motor_asyncio import AsyncIOMotorClient
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
-# MySQL 연결 설정
-DATABASE_URL = Settings.DATABASE_URL
-engine = create_engine(DATABASE_URL)
-SessionFactory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+# PostgreSQL 연결 설정 (비동기식)
+POSTGRES_DATABASE_URL = Settings.POSTGRES_DATABASE_URL
+postgres_engine = create_async_engine(POSTGRES_DATABASE_URL)
+AsyncSessionLocal = sessionmaker(
+    bind=postgres_engine,
+    expire_on_commit=False,
+    class_=AsyncSession
+)
 
 # Redis 연결 설정
 redis_client = redis.Redis(host=Settings.REDIS_HOST, port=Settings.REDIS_PORT, decode_responses=True)
 
-# MongoDB 연결 설정
-MONGO_URI = Settings.MONGO_URI
-MONGO_DB_NAME = Settings.MONGO_DB_NAME
 
-mongo_client = AsyncIOMotorClient(MONGO_URI)
-mongo_db = mongo_client[MONGO_DB_NAME]
-
-def get_db():
-    session = SessionFactory()
-    try:
+# PostgreSQL 비동기식 DB 세션 관리
+async def get_postgres_db():
+    async with AsyncSessionLocal() as session:
         yield session
-    finally:
-        session.close()

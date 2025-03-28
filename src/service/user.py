@@ -75,7 +75,7 @@ class UserService:
                 gender=request.gender,
             )
 
-            user = user_repo.save_user(user)
+            user = await user_repo.save_user(user)
             return UserSchema.model_validate(user)
 
         except OperationalError:
@@ -83,7 +83,7 @@ class UserService:
 
     async def log_in(self, request: LogInRequest, user_repo: UserRepository):
         """로그인 처리"""
-        user = user_repo.get_user_by_email(email=request.email)
+        user = await user_repo.get_user_by_email(email=request.email)
         if not user:
             raise HTTPException(status_code=404, detail="해당하는 이메일 존재X")
 
@@ -201,11 +201,20 @@ class NaverAuthService:
             raise HTTPException(status_code=400, detail="사용자 정보 가져오기 실패")
 
         # 생년월일 포맷 정리
-        birthday = "-".join(part.zfill(2) for part in birthday.split("-"))
-        birth = f"{birthyear}-{birthday}"
+        # birthday는 월-일 형식으로 주어짐 예: '08-08'
+        # birthyear는 연도 형식으로 주어짐 예: '2000'
+        try:
+            # 생년월일을 날짜로 변환 (예: '2000-08-08')
+            birthday = "-".join(part.zfill(2) for part in birthday.split("-"))
+            birth = f"{birthyear}-{birthday}"
+
+            # 날짜 포맷을 datetime.date로 변환
+            birth_date = datetime.strptime(birth, "%Y-%m-%d").date()
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"생년월일 처리 오류: {str(e)}")
 
         # 기존 유저 확인
-        user = user_repo.get_user_by_email(email=email)
+        user = await user_repo.get_user_by_email(email=email)
         if user:
             # 로그인 처리
             token = user_service.create_jwt(email=user.email)
@@ -220,13 +229,18 @@ class NaverAuthService:
                 password=hashed_password,
                 name=name,
                 nickname=f"naver_{nickname}",
-                birth=birth,
+                birth=birth_date,
                 gender=gender,
                 social_auth="N",
             )
-            user_repo.save_user(user)
+            await user_repo.save_user(user)
             token = user_service.create_jwt(email=user.email)
             return {"redirect_url": f"http://프론트엔드서버/auth/signup?token={token}"}
 
         except Exception as e:
-            raise HTTPException(status_code=500, detail="회원가입 중 오류 발생")
+            raise HTTPException(status_code=500, detail=f"회원가입 중 오류 발생{str(e)}")
+
+class GoogleAuthService:
+    CLIENT_ID = Settings.GOOGLE_CLIENT_ID
+    CLIENT_SECRET = Settings.GOOGLE_CLIENT_SECRET
+    REDIRECT_URI = Settings.GOOGLE_REDIRECT_URI

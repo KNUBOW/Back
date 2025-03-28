@@ -1,9 +1,10 @@
 #유저 관리
-import secrets
+import requests
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
+from core.config import Settings
 from schema.request import SignUpRequest, LogInRequest
 from service.user import UserService, NaverAuthService
 from database.repository import UserRepository
@@ -34,11 +35,6 @@ async def naver_login():
     auth_url = await NaverAuthService.get_auth_url()
     return JSONResponse(content={"auth_url": auth_url})  # Redirect에서 JSON으로 해야함. Front에서 정상적으로 전달안됨.
 
-@router.get("/naver")
-async def naver_login():
-    auth_url = await NaverAuthService.get_auth_url()
-    return JSONResponse(content={"auth_url": auth_url})  # 프론트엔드에서 auth_url 사용
-
 @router.get("/naver/callback")
 async def callback(
     request: Request,
@@ -52,5 +48,22 @@ async def callback(
     redirect_url = await naver_auth_service.handle_naver_callback(code, state, user_service, user_repo)
 
     return RedirectResponse(url=redirect_url)
+#------------------------------------------------------------------------
+
+#-------------------------- 구글 회원가입 / 로그인 ---------------------------
+@router.get("/google/callback")
+def google_callback(code: str):
+    token_endpoint = "https://oauth2.googleapis.com/token"
+    data = {
+        "code": code,
+        "client_id": Settings.GOOGLE_CLIENT_ID,
+        "client_secret": Settings.GOOGLE_CLIENT_SECRET,
+        "redirect_uri": Settings.GOOGLE_REDIRECT_URI,
+        "grant_type": "authorization_code",
+    }
+    r = requests.post(url=token_endpoint, data=data)
+#------------------------------------------------------------------------
+
+#-------------------------- 카카오 회원가입 / 로그인 --------------------------
 
 #------------------------------------------------------------------------
