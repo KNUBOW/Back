@@ -1,69 +1,46 @@
-#유저 관리
-import requests
-
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
-from core.config import Settings
 from schema.request import SignUpRequest, LogInRequest
-from service.user import UserService, NaverAuthService
-from database.repository import UserRepository
-
+from service.user_service import UserService
+from service.auth.social.naver import NaverAuthService
+from service.di import ServiceProvider
 
 router = APIRouter(prefix="/users")
 
 @router.post("/sign-up", status_code=201)
-async def user_sign_up_handler(
+async def user_sign_up(
     request: SignUpRequest,
-    user_service: UserService = Depends(),
-    user_repo: UserRepository = Depends(),
+    user_service: UserService = Depends(ServiceProvider.user_service),
 ):
-    return await user_service.sign_up(request, user_repo)
+    return await user_service.sign_up(request)
 
 
 @router.post("/log-in")
-async def user_log_in_handler(
+async def user_log_in(
     request: LogInRequest,
-    user_service: UserService = Depends(),
-    user_repo: UserRepository = Depends(),
+    user_service: UserService = Depends(ServiceProvider.user_service),
 ):
-    return await user_service.log_in(request, user_repo)
+    return await user_service.log_in(request)
 
-#-------------------------- 네이버 회원가입 / 로그인 --------------------------
+
+# ---------------- 네이버 로그인 ----------------
 @router.get("/naver")
-async def naver_login():
-    auth_url = await NaverAuthService.get_auth_url()
-    return JSONResponse(content={"auth_url": auth_url})  # Redirect에서 JSON으로 해야함. Front에서 정상적으로 전달안됨.
+async def naver_login(
+    naver_auth_service: NaverAuthService = Depends(ServiceProvider.naver_auth_service)
+):
+    auth_url = await naver_auth_service.get_auth_url()
+    return JSONResponse(content={"auth_url": auth_url})
+
 
 @router.get("/naver/callback")
-async def callback(
+async def naver_callback(
     request: Request,
-    naver_auth_service: NaverAuthService = Depends(),
-    user_service: UserService = Depends(),
-    user_repo: UserRepository = Depends(),
+    naver_auth_service: NaverAuthService = Depends(ServiceProvider.naver_auth_service),
 ):
     code = request.query_params.get("code")
     state = request.query_params.get("state")
-
-    redirect_url = await naver_auth_service.handle_naver_callback(code, state, user_service, user_repo)
-
+    redirect_url = await naver_auth_service.handle_naver_callback(code, state)
     return RedirectResponse(url=redirect_url)
-#------------------------------------------------------------------------
 
-#-------------------------- 구글 회원가입 / 로그인 ---------------------------
-@router.get("/google/callback")
-def google_callback(code: str):
-    token_endpoint = "https://oauth2.googleapis.com/token"
-    data = {
-        "code": code,
-        "client_id": Settings.GOOGLE_CLIENT_ID,
-        "client_secret": Settings.GOOGLE_CLIENT_SECRET,
-        "redirect_uri": Settings.GOOGLE_REDIRECT_URI,
-        "grant_type": "authorization_code",
-    }
-    r = requests.post(url=token_endpoint, data=data)
-#------------------------------------------------------------------------
-
-#-------------------------- 카카오 회원가입 / 로그인 --------------------------
-
-#------------------------------------------------------------------------
+# ---------------- 구글 로그인(예정) ----------------

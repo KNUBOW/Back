@@ -1,9 +1,9 @@
 #ORM은 객체(Object)와 데이터베이스(Table)을 연결(Mapping)하는 기술
 #SQL을 직접 쓰지 않고 파이썬 언어로 데이터베이스 조작하게 하는 도구
-#ORM create table 하는 코드로 추정됨.
 
 from sqlalchemy import Column, BigInteger, String, ForeignKey, Date, Enum, TIMESTAMP, text
 from sqlalchemy.orm import declarative_base, relationship
+
 from schema.request import IngredientRequest
 
 Base = declarative_base()

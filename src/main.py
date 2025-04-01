@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api import user, ingredient, foodthing
+
+from api import user, ingredient, recipe
 from core.config import Settings
 from middlewares.session import RedisSessionMiddleware
 
@@ -27,7 +28,7 @@ app.add_middleware(
 
 app.include_router(user.router)
 app.include_router(ingredient.router)
-app.include_router(foodthing.router)
+app.include_router(recipe.router)
 
 @app.get("/")
 def hello_world():

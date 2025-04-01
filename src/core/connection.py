@@ -1,7 +1,8 @@
-#MySQL 데이터베이스와 연결 설정, 세션 관리
+#연결 설정, 세션 관리
+import aioredis
+
 from sqlalchemy.orm import sessionmaker
 from core.config import Settings
-import redis
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 
@@ -15,11 +16,24 @@ AsyncSessionLocal = sessionmaker(
     class_=AsyncSession
 )
 
-# Redis 연결 설정
-redis_client = redis.Redis(host=Settings.REDIS_HOST, port=Settings.REDIS_PORT, decode_responses=True)
-
 
 # PostgreSQL 비동기식 DB 세션 관리
 async def get_postgres_db():
     async with AsyncSessionLocal() as session:
         yield session
+
+# Redis 연결
+class RedisClient:
+    _redis = None
+
+    @classmethod
+    async def get_redis(cls):
+        if cls._redis is None:
+            cls._redis = await aioredis.from_url(f"redis://{Settings.REDIS_HOST}", decode_responses=True)
+        return cls._redis
+
+    @classmethod
+    async def close_redis(cls):
+        if cls._redis:
+            await cls._redis.close()
+            cls._redis = None
