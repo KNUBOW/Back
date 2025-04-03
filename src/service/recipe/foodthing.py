@@ -2,7 +2,7 @@ import json
 import re
 import httpx
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from sqlalchemy import select
 
 from exception.foodthing_exception import (
@@ -29,22 +29,24 @@ def get_cook_ai(
     access_token: str = Depends(get_access_token),
     user_service: UserService = Depends(),
     user_repo: UserRepository = Depends(),
+    req: Request = Depends()
 ):
-    return CookAIService(user_service, user_repo, access_token)
+    return CookAIService(user_service, user_repo, access_token, req)
 
 
 class CookAIService:
-    def __init__(self, user_service: UserService, user_repo: UserRepository, access_token: str):
+    def __init__(self, user_service: UserService, user_repo: UserRepository, access_token: str, req: Request):
         self.ollama_url = settings.OLLAMA_URL
         self.model_name = settings.MODEL_NAME
         self.num_predict = 2000
         self.user_service = user_service
         self.user_repo = user_repo
         self.access_token = access_token
+        self.req = req
 
     async def _get_authenticated_user(self):
         try:
-            user = await self.user_service.get_user_by_token(self.access_token)
+            user = await self.user_service.get_user_by_token(self.access_token, self.req)
         except TokenExpiredException:
             raise
         except Exception as e:

@@ -74,17 +74,21 @@ def service_log(service: str, message: str, user_id: int | None = None, level: s
         case "ERROR": logger.error(log_msg)
         case _: logger.info(log_msg)
 
-def security_log(message: str, user_id: int = None, level: str = "WARNING"):
+
+def security_log(event: str, detail: str, user_id: int = None, ip: str = None, level: str = "WARNING"):
     logger = loggers["security"]
-    log_msg = f"[Security] {message}"
+    message = f"[Security] {event} | {detail}"
+
     if user_id:
-        log_msg += f" (user_id={user_id})"
+        message += f" | user_id={user_id}"
+    if ip:
+        message += f" | ip={ip}"
 
     match level.upper():
-        case "INFO":logger.info(log_msg)
-        case "ERROR":logger.error(log_msg)
-        case "CRITICAL":logger.critical(log_msg)
-        case _:logger.warning(log_msg)
+        case "INFO":logger.info(message)
+        case "ERROR":logger.error(message)
+        case "CRITICAL":logger.critical(message)
+        case _:logger.warning(message)
 
 # 전역에서 쓸 로거들
 loggers = setup_logging()

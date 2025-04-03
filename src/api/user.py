@@ -19,9 +19,10 @@ async def user_sign_up(
 @router.post("/log-in")
 async def user_log_in(
     request: LogInRequest,
+    req: Request,
     user_service: UserService = Depends(ServiceProvider.user_service),
 ):
-    return await user_service.log_in(request)
+    return await user_service.log_in(request, req)
 
 
 # ---------------- 네이버 로그인 ----------------
@@ -40,7 +41,7 @@ async def naver_callback(
 ):
     code = request.query_params.get("code")
     state = request.query_params.get("state")
-    redirect_url = await naver_auth_service.handle_naver_callback(code, state)
+    redirect_url = await naver_auth_service.handle_naver_callback(code, state, request)
     return RedirectResponse(url=redirect_url)
 
 # ---------------- 구글 로그인(예정) ----------------

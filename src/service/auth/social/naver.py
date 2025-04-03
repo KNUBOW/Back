@@ -2,9 +2,11 @@ import secrets
 import httpx
 
 from datetime import datetime
+from fastapi import Request
 
 from core.connection import RedisClient
 from core.config import settings
+from core.logging import security_log
 from database.repository.user_repository import UserRepository
 from database.orm import User
 from service.user_service import UserService
@@ -39,10 +41,15 @@ class NaverAuthService:
             f"&state={state}"
         )
 
-    async def validate_state(self, state: str):
+    async def validate_state(self, state: str, req: Request):
         redis = await RedisClient.get_redis()
         saved_state = await redis.get(f"naver_state:{state}")
         if not saved_state:
+            security_log(
+                event="Invalid State",
+                detail=f"소셜 로그인 state 불일치 (state={state})",
+                ip=req.client.host
+            )
             raise InvalidStateException()
         await redis.delete(f"naver_state:{state}")
 
@@ -83,8 +90,8 @@ class NaverAuthService:
 
             return data["response"]
 
-    async def handle_naver_callback(self, code: str, state: str):
-        await self.validate_state(state)
+    async def handle_naver_callback(self, code: str, state: str, req: Request):
+        await self.validate_state(state, req)
         token_data = await self.get_token(code, state)
         access_token = token_data.get("access_token")
         if not access_token:

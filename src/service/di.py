@@ -1,6 +1,6 @@
 # DI(Dependency Injection)를 이용하여 라우터와 서비스에서 코드를 줄여 가독성 올림.
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.repository.ingredient_repository import IngredientRepository
@@ -29,12 +29,13 @@ class ServiceProvider:
 
     @staticmethod
     def ingredient_service(
+        req: Request,
         access_token: str = Depends(get_access_token),
         ingredient_repo: IngredientRepository = Depends(RepositoryProvider.ingredient_repo),
         user_repo: UserRepository = Depends(RepositoryProvider.user_repo),
         user_service: UserService = Depends(user_service),
     ):
-        return IngredientService(user_repo, ingredient_repo, user_service, access_token)
+        return IngredientService(user_repo, ingredient_repo, user_service, access_token, req)
 
     @staticmethod
     def cook_ai_service(

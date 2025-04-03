@@ -59,10 +59,10 @@ async def global_exception_handler(request: Request, exc: Exception):
         detail = exc.detail
 
     else:
-        error_logger.error(f"[Unhandled Exception] {type(exc).__name__}: {exc}")
+        error_logger.error(f"[Unhandled Exception] {type(exc).__name__}: {str(exc)}")
         status_code = 500
         code = "UNHANDLED_ERROR"
-        detail = "예기치 못한 오류가 발생 (백엔드 서버, Docker, SQL, Ollama 등 확인)"
+        detail = "예기치 못한 오류가 발생", str(exc)
 
     return JSONResponse(
         status_code=status_code,

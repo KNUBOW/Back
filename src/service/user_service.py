@@ -1,5 +1,6 @@
 import bcrypt
 
+from fastapi import Request
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
 
@@ -16,6 +17,7 @@ from exception.user_exception import (
     DuplicateNicknameException
 )
 
+from core.logging import security_log
 from core.config import settings
 from database.repository.user_repository import UserRepository
 from database.orm import User
@@ -55,7 +57,7 @@ class UserService:
             algorithm=self.jwt_algorithm,
         )
 
-    def decode_jwt(self, access_token: str):
+    def decode_jwt(self, access_token: str, req: Request) -> str:
         try:
             payload: dict = jwt.decode(
                 access_token, self.secret_key, algorithms=[self.jwt_algorithm]
@@ -63,10 +65,21 @@ class UserService:
             email = payload.get("sub")
 
             if email is None:
+                security_log(
+                    event="Token Expired",
+                    detail="JWT payload에서 email(sub) 누락됨",
+                    ip=req.client.host
+                )
                 raise TokenExpiredException()
+
             return email
 
-        except JWTError:
+        except JWTError as e:
+            security_log(
+                event="Invalid Token",
+                detail=f"JWT 디코드 실패 또는 조작된 토큰 사용: {str(e)}",
+                ip=req.client.host
+            )
             raise TokenExpiredException()
 
     async def sign_up(self, request: SignUpRequest):
@@ -98,21 +111,37 @@ class UserService:
         except Exception as e:
             raise UnexpectedException(detail=f"회원가입 중 예기치 못한 오류 발생: {str(e)}")
 
-    async def log_in(self, request: LogInRequest):
+    async def log_in(self, request: LogInRequest, req: Request):
         user = await self.user_repo.get_user_by_email(email=request.email)
         if not user:
+            security_log(
+                event="Login Failed",
+                detail=f"존재하지 않는 이메일로 로그인 시도: {request.email}",
+                ip=req.client.host
+            )
             raise InvalidCredentialsException()
 
         verified = self.verify_password(request.password, user.password)
         if not verified:
+            if not verified:
+                security_log(
+                    event="Login Failed",
+                    detail=f"비밀번호 틀림 - 이메일: {request.email}",
+                    ip=req.client.host
+                )
             raise InvalidCredentialsException()
 
         access_token = self.create_jwt(email=user.email)
         return JWTResponse(access_token=access_token)
 
-    async def get_user_by_token(self, access_token: str) -> User:
-        email: str = self.decode_jwt(access_token=access_token)
+    async def get_user_by_token(self, access_token: str, req: Request) -> User:
+        email: str = self.decode_jwt(access_token=access_token, req=req)
         user: User | None = await self.user_repo.get_user_by_email(email=email)
         if not user:
+            security_log(
+                event="User Not Found",
+                detail=f"JWT 이메일 {email}에 해당하는 유저가 없음",
+                ip=req.client.host
+            )
             raise UserNotFoundException()
         return user

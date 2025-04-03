@@ -2,6 +2,7 @@ from database.orm import Ingredient
 from schema.request import IngredientRequest
 from schema.response import IngredientListSchema, IngredientSchema
 from core.logging import service_log
+from fastapi import Request
 
 from exception.ingredient_exception import (
     IngredientConflictException,
@@ -10,14 +11,15 @@ from exception.ingredient_exception import (
 
 
 class IngredientService:
-    def __init__(self, user_repo, ingredient_repo, user_service, access_token: str):
+    def __init__(self, user_repo, ingredient_repo, user_service, access_token: str, req: Request):
         self.user_repo = user_repo
         self.ingredient_repo = ingredient_repo
         self.user_service = user_service
         self.access_token = access_token
+        self.req = req
 
     async def get_current_user(self):
-        return await self.user_service.get_user_by_token(self.access_token)
+        return await self.user_service.get_user_by_token(self.access_token, self.req)
 
     async def create_ingredient(self, request: IngredientRequest):
         user = await self.get_current_user()
