@@ -2,13 +2,13 @@
 import aioredis
 
 from sqlalchemy.orm import sessionmaker
-from core.config import Settings
+from core.config import settings
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 
 
 # PostgreSQL 연결 설정 (비동기식)
-POSTGRES_DATABASE_URL = Settings.POSTGRES_DATABASE_URL
+POSTGRES_DATABASE_URL = settings.POSTGRES_DATABASE_URL
 postgres_engine = create_async_engine(POSTGRES_DATABASE_URL)
 AsyncSessionLocal = sessionmaker(
     bind=postgres_engine,
@@ -29,7 +29,7 @@ class RedisClient:
     @classmethod
     async def get_redis(cls):
         if cls._redis is None:
-            cls._redis = await aioredis.from_url(f"redis://{Settings.REDIS_HOST}", decode_responses=True)
+            cls._redis = await aioredis.from_url(f"redis://{settings.REDIS_HOST}", decode_responses=True)
         return cls._redis
 
     @classmethod

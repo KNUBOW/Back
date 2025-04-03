@@ -7,10 +7,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from itsdangerous import Signer
 
-from core.config import Settings
+from core.config import settings
 
 # Redis 연결
-REDIS_URL = f"redis://{Settings.REDIS_HOST}:{Settings.REDIS_PORT}"
+REDIS_URL = f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}"
 redis = None
 
 async def get_redis():

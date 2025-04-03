@@ -2,10 +2,21 @@ import bcrypt
 
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
-from fastapi import HTTPException
-from sqlalchemy.exc import OperationalError
 
-from core.config import Settings
+from exception.external_exception import UnexpectedException
+
+from exception.auth_exception import (
+    TokenExpiredException,
+    InvalidCredentialsException,
+    UserNotFoundException
+)
+
+from exception.user_exception import (
+    DuplicateEmailException,
+    DuplicateNicknameException
+)
+
+from core.config import settings
 from database.repository.user_repository import UserRepository
 from database.orm import User
 from schema.request import SignUpRequest, LogInRequest
@@ -14,9 +25,9 @@ from schema.response import UserSchema, JWTResponse
 
 class UserService:
 
-    encoding = Settings.encoding
-    secret_key = Settings.secret_key
-    jwt_algorithm = Settings.jwt_algorithm
+    encoding = "UTF-8"
+    secret_key = settings.SECRET_KEY.get_secret_value()
+    jwt_algorithm = "HS256"
 
     def __init__(self, user_repo: UserRepository):
         self.user_repo = user_repo
@@ -52,14 +63,21 @@ class UserService:
             email = payload.get("sub")
 
             if email is None:
-                raise HTTPException(status_code=401, detail="유효하지 않은 토큰")
+                raise TokenExpiredException()
             return email
 
         except JWTError:
-            raise HTTPException(status_code=401, detail="유효하지 않거나 만료된 토큰")
+            raise TokenExpiredException()
 
     async def sign_up(self, request: SignUpRequest):
+        # 중복 확인
         try:
+            if await self.user_repo.get_user_by_email(request.email):
+                raise DuplicateEmailException()
+
+            if await self.user_repo.get_user_by_nickname(request.nickname):
+                raise DuplicateNicknameException()
+
             hashed_password = self.hash_password(request.password)
 
             user = User.create(
@@ -74,17 +92,20 @@ class UserService:
             user = await self.user_repo.save_user(user)
             return UserSchema.model_validate(user)
 
-        except OperationalError:
-            raise HTTPException(status_code=500, detail="컨테이너 또는 데이터베이스 관련 오류 발생(docker, mysql 등 확인)")
+        except (DuplicateEmailException, DuplicateNicknameException):
+            raise
+
+        except Exception as e:
+            raise UnexpectedException(detail=f"회원가입 중 예기치 못한 오류 발생: {str(e)}")
 
     async def log_in(self, request: LogInRequest):
         user = await self.user_repo.get_user_by_email(email=request.email)
         if not user:
-            raise HTTPException(status_code=404, detail="해당하는 이메일 존재X")
+            raise InvalidCredentialsException()
 
         verified = self.verify_password(request.password, user.password)
         if not verified:
-            raise HTTPException(status_code=401, detail="인증 실패")
+            raise InvalidCredentialsException()
 
         access_token = self.create_jwt(email=user.email)
         return JWTResponse(access_token=access_token)
@@ -93,5 +114,5 @@ class UserService:
         email: str = self.decode_jwt(access_token=access_token)
         user: User | None = await self.user_repo.get_user_by_email(email=email)
         if not user:
-            raise HTTPException(status_code=404, detail="User Not Found")
+            raise UserNotFoundException()
         return user

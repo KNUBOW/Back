@@ -1,3 +1,5 @@
+# DI(Dependency Injection)를 이용하여 라우터와 서비스에서 코드를 줄여 가독성 올림.
+
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -48,13 +50,3 @@ class ServiceProvider:
         user_repo: UserRepository = Depends(RepositoryProvider.user_repo),
     ):
         return NaverAuthService(user_service, user_repo)
-
-
-class AuthProvider:
-    @staticmethod
-    def naver_auth_service():
-        return NaverAuthService()
-
-    @staticmethod
-    def google_auth_service():
-        return GoogleAuthService()

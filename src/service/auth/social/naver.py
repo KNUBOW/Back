@@ -2,18 +2,25 @@ import secrets
 import httpx
 
 from datetime import datetime
-from fastapi import HTTPException
 
 from core.connection import RedisClient
-from core.config import Settings
+from core.config import settings
 from database.repository.user_repository import UserRepository
 from database.orm import User
 from service.user_service import UserService
 
+from exception.social_exception import (
+    InvalidStateException,
+    SocialTokenException,
+    SocialUserInfoException,
+    MissingSocialDataException,
+    SocialSignupException,
+)
+
 class NaverAuthService:
-    CLIENT_ID = Settings.NAVER_CLIENT_ID
-    CLIENT_SECRET = Settings.NAVER_CLIENT_SECRET
-    REDIRECT_URI = Settings.NAVER_REDIRECT_URI
+    CLIENT_ID = settings.NAVER_CLIENT_ID
+    CLIENT_SECRET = settings.NAVER_CLIENT_SECRET.get_secret_value()
+    REDIRECT_URI = settings.NAVER_REDIRECT_URI
 
     def __init__(self, user_service: UserService, user_repo: UserRepository):
         self.user_service = user_service
@@ -36,7 +43,7 @@ class NaverAuthService:
         redis = await RedisClient.get_redis()
         saved_state = await redis.get(f"naver_state:{state}")
         if not saved_state:
-            raise HTTPException(status_code=400, detail="state 불일치")
+            raise InvalidStateException()
         await redis.delete(f"naver_state:{state}")
 
     async def get_token(self, code: str, state: str):
@@ -53,11 +60,11 @@ class NaverAuthService:
         async with httpx.AsyncClient() as client:
             response = await client.post(token_url, headers=headers, data=params)
             if response.status_code != 200:
-                raise HTTPException(status_code=response.status_code, detail="네이버 토큰 요청 실패")
+                raise SocialTokenException(detail=f"토큰 요청 실패: {response.status_code}")
 
             token_data = response.json()
             if "access_token" not in token_data:
-                raise HTTPException(status_code=400, detail="access_token 누락")
+                raise SocialTokenException(detail="access_token 누락됨")
 
             return token_data
 
@@ -68,11 +75,11 @@ class NaverAuthService:
         async with httpx.AsyncClient() as client:
             response = await client.get(user_info_url, headers=headers)
             if response.status_code != 200:
-                raise HTTPException(status_code=response.status_code, detail="사용자 정보 요청 실패")
+                raise SocialUserInfoException(detail=f"사용자 정보 요청 실패: {response.status_code}")
 
             data = response.json()
             if "response" not in data:
-                raise HTTPException(status_code=400, detail="사용자 정보 누락")
+                raise SocialUserInfoException(detail="사용자 정보 누락")
 
             return data["response"]
 
@@ -81,7 +88,7 @@ class NaverAuthService:
         token_data = await self.get_token(code, state)
         access_token = token_data.get("access_token")
         if not access_token:
-            raise HTTPException(status_code=400, detail="토큰 누락")
+            raise SocialTokenException(detail="access_token 누락됨")
 
         user_info = await self.get_user_info(access_token)
         return await self.handle_login_or_signup(user_info)
@@ -95,14 +102,14 @@ class NaverAuthService:
         birthyear = user_info.get("birthyear")
 
         if not all([email, name, nickname, gender, birthday, birthyear]):
-            raise HTTPException(status_code=400, detail="필수 정보 누락")
+            raise MissingSocialDataException()
 
         try:
             birthday = "-".join(part.zfill(2) for part in birthday.split("-"))
             birth = f"{birthyear}-{birthday}"
             birth_date = datetime.strptime(birth, "%Y-%m-%d").date()
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"생년월일 오류: {str(e)}")
+            raise SocialUserInfoException(detail=f"생년월일 처리 실패: {str(e)}")
 
         user = await self.user_repo.get_user_by_email(email=email)
 
@@ -128,4 +135,4 @@ class NaverAuthService:
             token = self.user_service.create_jwt(email=email)
             return f"http://프론트엔드서버/auth/success?token={token}"
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"회원가입 오류: {str(e)}")
+            raise SocialSignupException(detail=f"회원가입 오류: {str(e)}")
