@@ -70,6 +70,16 @@ class CookAIService:
         return [name for (name,) in ingredients.all()]
 
     async def call_ollama(self, prompt):
+        health_url = self.ollama_url.replace("/api/generate", "/")
+        timeout = httpx.Timeout(50.0)
+
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                # ✅ 서버 확인 먼저
+                await client.get(health_url)
+        except httpx.RequestError as e:
+            raise AIServiceException(detail=f"Ollama 서버에 연결할 수 없습니다: {str(e)}")
+
         payload = {
             "model": self.model_name,
             "prompt": prompt,
@@ -77,7 +87,6 @@ class CookAIService:
             "options": {"num_predict": self.num_predict},
         }
 
-        timeout = httpx.Timeout(50.0)
 
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
