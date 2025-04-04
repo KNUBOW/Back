@@ -39,11 +39,12 @@ class ServiceProvider:
 
     @staticmethod
     def cook_ai_service(
+        req: Request,
         access_token: str = Depends(get_access_token),  # JWT Token
         user_service: UserService = Depends(user_service),
         user_repo: UserRepository = Depends(RepositoryProvider.user_repo),
     ):
-        return CookAIService(user_service, user_repo, access_token)
+        return CookAIService(user_service, user_repo, access_token, req)
 
     @staticmethod
     def naver_auth_service(

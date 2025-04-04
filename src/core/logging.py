@@ -12,7 +12,7 @@ def kst_converter(*args):
     return datetime.now(tz=KST).timetuple()
 
 # 로그 디렉토리 생성
-LOG_DIR = "logs"
+LOG_DIR = "/app/logs"
 os.makedirs(LOG_DIR, exist_ok=True)
 
 # 공통 포맷터
@@ -55,7 +55,7 @@ def setup_logging():
         # 콘솔에도 출력하고 싶다면 아래 줄 활성화
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(formatter)
-        console_handler.setLevel(logging.INFO)
+        console_handler.setLevel(logging.WARNING)
         logger.addHandler(console_handler)
 
         loggers[name] = logger

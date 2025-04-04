@@ -32,7 +32,6 @@ async def lifespan(app: FastAPI):
         if len(secret_key_value) != 64:
             raise ValueError("SECRET_KEY는 반드시 64자리여야 합니다.")
 
-        system_logger.info(".env 환경변수 로딩 및 유효성 검사 성공 🟢")
     except Exception as e:
         system_logger.error(f".env 설정 오류: {e}", exc_info=True)
         raise RuntimeError("앱 실행 중단 🔴")
@@ -40,7 +39,6 @@ async def lifespan(app: FastAPI):
     try:
         async with AsyncSessionLocal() as session:
             await session.execute(text("SELECT 1"))
-        system_logger.info("PostgreSQL 연결 성공 🟢")
     except Exception as e:
         system_logger.error(f"PostgreSQL 연결 실패: {e}", exc_info=True)
         raise RuntimeError("PostgreSQL 연결 실패 🔴")
@@ -48,7 +46,6 @@ async def lifespan(app: FastAPI):
     try:
         redis = await RedisClient.get_redis()
         await redis.ping()
-        system_logger.info("Redis 연결 성공 🟢")
     except Exception as e:
         system_logger.error(f"Redis 연결 실패: {e}")
         raise RuntimeError("Redis 연결 실패 🔴")
