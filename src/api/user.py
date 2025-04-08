@@ -4,14 +4,14 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from schema.request import SignUpRequest, LogInRequest
 from service.user_service import UserService
 from service.auth.social.naver import NaverAuthService
-from service.di import ServiceProvider
+from service.di import get_user_service
 
-router = APIRouter(prefix="/users")
+router = APIRouter(prefix="/users", tags=["User"])
 
 @router.post("/sign-up", status_code=201)
 async def user_sign_up(
     request: SignUpRequest,
-    user_service: UserService = Depends(ServiceProvider.user_service),
+    user_service: UserService = Depends(get_user_service),
 ):
     return await user_service.sign_up(request)
 
@@ -20,7 +20,7 @@ async def user_sign_up(
 async def user_log_in(
     request: LogInRequest,
     req: Request,
-    user_service: UserService = Depends(ServiceProvider.user_service),
+    user_service: UserService = Depends(get_user_service),
 ):
     return await user_service.log_in(request, req)
 
@@ -28,7 +28,7 @@ async def user_log_in(
 # ---------------- 네이버 로그인 ----------------
 @router.get("/naver")
 async def naver_login(
-    naver_auth_service: NaverAuthService = Depends(ServiceProvider.naver_auth_service)
+    naver_auth_service: NaverAuthService = Depends(get_user_service),
 ):
     auth_url = await naver_auth_service.get_auth_url()
     return JSONResponse(content={"auth_url": auth_url})
@@ -37,7 +37,7 @@ async def naver_login(
 @router.get("/naver/callback")
 async def naver_callback(
     request: Request,
-    naver_auth_service: NaverAuthService = Depends(ServiceProvider.naver_auth_service),
+    naver_auth_service: NaverAuthService = Depends(get_user_service),
 ):
     code = request.query_params.get("code")
     state = request.query_params.get("state")

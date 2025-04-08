@@ -1,8 +1,10 @@
 from typing import Optional, List
 from sqlalchemy import select, delete, and_
 from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime, timedelta
 
-from database.orm import Ingredient
+from database.orm import Ingredient, ManualExpirationLog, UnrecognizedIngredientLog, IngredientCategories
+
 
 from exception.external_exception import UnexpectedException
 
@@ -42,6 +44,41 @@ class IngredientRepository:
         except Exception as e:  # 예상치 못한 에러
             await self.session.rollback()
             raise UnexpectedException(detail=f"예기치 못한 에러 발생: {str(e)}")
+
+    async def get_default_expiration(self, ingredient_name: str) -> Optional[int]:
+        stmt = select(IngredientCategories.default_expiration_days).where(
+            IngredientCategories.ingredient_name == ingredient_name
+        )
+        result = await self.session.execute(stmt)
+        days = result.scalar()
+        if days is not None:
+            return (datetime.utcnow() + timedelta(days=days)).date()
+        return None
+
+    async def save_manual_expiration_log(self, user_id: int, ingredient_name: str, expiration_date: int):
+        try:
+            log = ManualExpirationLog(
+                user_id=user_id,
+                ingredient_name=ingredient_name,
+                expiration_date=expiration_date
+            )
+            self.session.add(log)
+            await self.session.commit()
+        except Exception as e:
+            await self.session.rollback()
+            raise UnexpectedException(detail=f"ManualExpirationLog 저장 실패: {str(e)}")
+
+    async def save_unrecognized_ingredient_log(self, user_id: int, ingredient_name: str):
+        try:
+            log = UnrecognizedIngredientLog(
+                user_id=user_id,
+                ingredient_name=ingredient_name
+            )
+            self.session.add(log)
+            await self.session.commit()
+        except Exception as e:
+            await self.session.rollback()
+            raise UnexpectedException(detail=f"UnrecognizedIngredientLog 저장 실패: {str(e)}")
 
     async def get_ingredient_by_name(self, user_id: int, name: str) -> Optional[Ingredient]:
         stmt = select(Ingredient).filter(

@@ -26,3 +26,9 @@ class IngredientSchema(BaseModel):
 
 class IngredientListSchema(BaseModel):
     ingredients: List[IngredientSchema]
+
+
+class BulkCreateResponseSchema(BaseModel):
+    message: str
+    created: List[IngredientSchema]
+    skipped_duplicates: List[str]

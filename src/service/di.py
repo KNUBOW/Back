@@ -12,43 +12,42 @@ from service.recipe.foodthing import CookAIService
 from service.auth.social.naver import NaverAuthService
 from service.auth.jwt_handler import get_access_token
 
-class RepositoryProvider:
-    @staticmethod
-    def user_repo(session: AsyncSession = Depends(get_postgres_db)):
-        return UserRepository(session)
+# ----------------------
+# Repository DI
+# ----------------------
 
-    @staticmethod
-    def ingredient_repo(session: AsyncSession = Depends(get_postgres_db)):
-        return IngredientRepository(session)
+def get_user_repo(session: AsyncSession = Depends(get_postgres_db)) -> UserRepository:
+    return UserRepository(session)
 
+def get_ingredient_repo(session: AsyncSession = Depends(get_postgres_db)) -> IngredientRepository:
+    return IngredientRepository(session)
 
-class ServiceProvider:
-    @staticmethod
-    def user_service(user_repo=Depends(RepositoryProvider.user_repo)):
-        return UserService(user_repo)
+# ----------------------
+# Service DI
+# ----------------------
 
-    @staticmethod
-    def ingredient_service(
-        req: Request,
-        access_token: str = Depends(get_access_token),
-        ingredient_repo: IngredientRepository = Depends(RepositoryProvider.ingredient_repo),
-        user_repo: UserRepository = Depends(RepositoryProvider.user_repo),
-        user_service: UserService = Depends(user_service),
-    ):
-        return IngredientService(user_repo, ingredient_repo, user_service, access_token, req)
+def get_user_service(user_repo: UserRepository = Depends(get_user_repo)) -> UserService:
+    return UserService(user_repo)
 
-    @staticmethod
-    def cook_ai_service(
-        req: Request,
-        access_token: str = Depends(get_access_token),  # JWT Token
-        user_service: UserService = Depends(user_service),
-        user_repo: UserRepository = Depends(RepositoryProvider.user_repo),
-    ):
-        return CookAIService(user_service, user_repo, access_token, req)
+def get_ingredient_service(
+    req: Request,
+    access_token: str = Depends(get_access_token),
+    ingredient_repo: IngredientRepository = Depends(get_ingredient_repo),
+    user_repo: UserRepository = Depends(get_user_repo),
+    user_service: UserService = Depends(get_user_service),
+) -> IngredientService:
+    return IngredientService(user_repo, ingredient_repo, user_service, access_token, req)
 
-    @staticmethod
-    def naver_auth_service(
-        user_service: UserService = Depends(user_service),
-        user_repo: UserRepository = Depends(RepositoryProvider.user_repo),
-    ):
-        return NaverAuthService(user_service, user_repo)
+def get_cook_ai_service(
+    req: Request,
+    access_token: str = Depends(get_access_token),
+    user_service: UserService = Depends(get_user_service),
+    user_repo: UserRepository = Depends(get_user_repo),
+) -> CookAIService:
+    return CookAIService(user_service, user_repo, access_token, req)
+
+def get_naver_auth_service(
+    user_service: UserService = Depends(get_user_service),
+    user_repo: UserRepository = Depends(get_user_repo),
+) -> NaverAuthService:
+    return NaverAuthService(user_service, user_repo)
