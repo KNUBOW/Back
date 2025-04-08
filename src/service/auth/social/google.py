@@ -5,6 +5,7 @@ import httpx
 from fastapi import HTTPException, Request
 from urllib.parse import urlencode
 
+from core.config import settings
 from core.connection import RedisClient
 from database.orm import User
 from core.logging import security_log
@@ -15,9 +16,9 @@ from service.user_service import UserService
 
 
 class GoogleAuthService:
-    GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-    GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-    GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
+    GOOGLE_CLIENT_ID = settings.GOOGLE_CLIENT_ID
+    GOOGLE_CLIENT_SECRET = settings.GOOGLE_CLIENT_SECRET.get_secret_value()
+    GOOGLE_REDIRECT_URI = settings.GOOGLE_REDIRECT_URI
 
     GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
     GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v1/userinfo"
@@ -93,12 +94,11 @@ class GoogleAuthService:
         return await self.handle_login_or_signup(user_info)
 
     async def handle_login_or_signup(self, user_info: dict) -> str:
+        nickname = user_info.get("id")
         email = user_info.get("email")
         name = user_info.get("name")
-        google_id = user_info.get("id")
-        picture = user_info.get("picture")
 
-        if not all([email, name, google_id]):
+        if not all([email, name, nickname]):
             raise MissingSocialDataException()
 
         user = await self.user_repo.get_user_by_email(email=email)
@@ -114,7 +114,7 @@ class GoogleAuthService:
                 email=email,
                 password=hashed_password,
                 name=name,
-                nickname=f"google_{google_id}",
+                nickname=f"google_{nickname}",
                 social_auth="G",
             )
             await self.user_repo.save_user(new_user)

@@ -5,7 +5,7 @@ from schema.request import SignUpRequest, LogInRequest
 from service.auth.social.google import GoogleAuthService
 from service.user_service import UserService
 from service.auth.social.naver import NaverAuthService
-from service.di import get_user_service, get_google_auth_service
+from service.di import get_user_service, get_google_auth_service, get_naver_auth_service
 
 router = APIRouter(prefix="/users", tags=["User"])
 
@@ -29,7 +29,7 @@ async def user_log_in(
 # ---------------- 네이버 로그인 ----------------
 @router.get("/naver")
 async def naver_login(
-    naver_auth_service: NaverAuthService = Depends(get_user_service),
+    naver_auth_service: NaverAuthService = Depends(get_naver_auth_service),
 ):
     auth_url = await naver_auth_service.get_auth_url()
     return JSONResponse(content={"auth_url": auth_url})
@@ -38,7 +38,7 @@ async def naver_login(
 @router.get("/naver/callback")
 async def naver_callback(
     request: Request,
-    naver_auth_service: NaverAuthService = Depends(get_user_service),
+    naver_auth_service: NaverAuthService = Depends(get_naver_auth_service),
 ):
     code = request.query_params.get("code")
     state = request.query_params.get("state")
@@ -46,12 +46,10 @@ async def naver_callback(
     return RedirectResponse(url=redirect_url)
 
 # ---------------- 구글 로그인(예정) ----------------
-
-
 @router.get("/google")
 async def google_login(google_auth_service: GoogleAuthService = Depends(get_google_auth_service)):
     auth_url = await google_auth_service.get_auth_url()
-    return RedirectResponse(auth_url)
+    return JSONResponse(content={"auth_url": auth_url})
 
 
 @router.get("/google/callback")
@@ -61,8 +59,6 @@ async def google_callback(
     state: str = None,
     google_auth_service: GoogleAuthService = Depends(get_google_auth_service)
 ):
-    if not code:
-        return {"error": "Authorization failed or denied"}
 
     redirect_url = await google_auth_service.handle_google_callback(code, state, request)
     return RedirectResponse(url=redirect_url)

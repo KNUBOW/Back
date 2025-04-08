@@ -18,8 +18,8 @@ class User(Base):   #유저 관련 테이블 생성
     password = Column(String(255), nullable=False)
     name = Column(String(20), nullable=False)
     nickname = Column(String(70), nullable=False, unique=True)
-    birth = Column(Date, nullable=False)
-    gender = Column(Enum("M", "F", name="gender_enum"), nullable=False)
+    birth = Column(Date)
+    gender = Column(Enum("M", "F", name="gender_enum"))
     social_auth = Column(Enum("G", "N", "K", name="social_auth_enum"))
     created_at = Column(TIMESTAMP(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False)
 
