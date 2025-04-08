@@ -85,6 +85,7 @@ class ManualExpirationLog(Base):    # 유저들이 직접 유통기한을 넣은
     user_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     ingredient_name = Column(String(40), nullable=False)
     expiration_date = Column(Integer, nullable=False)  # 유통기한 INT로 저장
+    event_type = Column(Enum("unknown", "different", name="event_type_enum"))
     created_at = Column(TIMESTAMP(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False)
 
     user = relationship("User", back_populates="manual_expiration_logs")

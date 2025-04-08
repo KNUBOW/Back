@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.repository.ingredient_repository import IngredientRepository
 from database.repository.user_repository import UserRepository
 from core.connection import get_postgres_db
+from service.auth.social.google import GoogleAuthService
 from service.user_service import UserService
 from service.ingredient_service import IngredientService
 from service.recipe.foodthing import CookAIService
@@ -51,3 +52,9 @@ def get_naver_auth_service(
     user_repo: UserRepository = Depends(get_user_repo),
 ) -> NaverAuthService:
     return NaverAuthService(user_service, user_repo)
+
+def get_google_auth_service(
+    user_service: UserService = Depends(get_user_service),
+    user_repo: UserRepository = Depends(get_user_repo),
+) -> GoogleAuthService:
+    return GoogleAuthService(user_service, user_repo)

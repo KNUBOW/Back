@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from schema.request import SignUpRequest, LogInRequest
+from service.auth.social.google import GoogleAuthService
 from service.user_service import UserService
 from service.auth.social.naver import NaverAuthService
-from service.di import get_user_service
+from service.di import get_user_service, get_google_auth_service
 
 router = APIRouter(prefix="/users", tags=["User"])
 
@@ -45,3 +46,23 @@ async def naver_callback(
     return RedirectResponse(url=redirect_url)
 
 # ---------------- 구글 로그인(예정) ----------------
+
+
+@router.get("/google")
+async def google_login(google_auth_service: GoogleAuthService = Depends(get_google_auth_service)):
+    auth_url = await google_auth_service.get_auth_url()
+    return RedirectResponse(auth_url)
+
+
+@router.get("/google/callback")
+async def google_callback(
+    request: Request,
+    code: str = None,
+    state: str = None,
+    google_auth_service: GoogleAuthService = Depends(get_google_auth_service)
+):
+    if not code:
+        return {"error": "Authorization failed or denied"}
+
+    redirect_url = await google_auth_service.handle_google_callback(code, state, request)
+    return RedirectResponse(url=redirect_url)

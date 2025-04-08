@@ -55,12 +55,13 @@ class IngredientRepository:
             return (datetime.utcnow() + timedelta(days=days)).date()
         return None
 
-    async def save_manual_expiration_log(self, user_id: int, ingredient_name: str, expiration_date: int):
+    async def save_manual_expiration_log(self, user_id: int, ingredient_name: str, expiration_date: int, event_type: str):
         try:
             log = ManualExpirationLog(
                 user_id=user_id,
                 ingredient_name=ingredient_name,
-                expiration_date=expiration_date
+                expiration_date=expiration_date,
+                event_type=event_type
             )
             self.session.add(log)
             await self.session.commit()

@@ -46,22 +46,29 @@ class IngredientService:
 
             expiration_date = request.expiration_date
 
-            if expiration_date:
-                days_left = (expiration_date - date.today()).days
-                await self.ingredient_repo.save_manual_expiration_log(
-                    user_id=user.id,
-                    ingredient_name=request.name,
-                    expiration_date=days_left
-                )
-            else:
+            if expiration_date and isinstance(expiration_date, date):
+                # DB에서 기본 유통기한 조회
                 default_expiration = await self.ingredient_repo.get_default_expiration(request.name)
-                if default_expiration:
-                    expiration_date = default_expiration
-                else:
-                    await self.ingredient_repo.save_unrecognized_ingredient_log(
+
+                if not default_expiration:
+                    # 기본값이 없으면 → unknown
+                    days_left = (expiration_date - date.today()).days
+                    await self.ingredient_repo.save_manual_expiration_log(
                         user_id=user.id,
-                        ingredient_name=request.name
+                        ingredient_name=request.name,
+                        expiration_date=days_left,
+                        event_type="unknown"
                     )
+                elif expiration_date != default_expiration:
+                    # 기본값과 다르면 → overridden
+                    days_left = (expiration_date - date.today()).days
+                    await self.ingredient_repo.save_manual_expiration_log(
+                        user_id=user.id,
+                        ingredient_name=request.name,
+                        expiration_date=days_left,
+                        event_type="different",
+                    )
+                # 같으면 아무 로그도 남기지 않음
 
             ingredient = Ingredient.create(request, user.id, expiration_date=expiration_date)
             await self.ingredient_repo.create_ingredient(ingredient)
