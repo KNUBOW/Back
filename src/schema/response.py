@@ -1,15 +1,14 @@
-#기능 성공 후 출력 메세지
 from datetime import date
 from typing import Optional, List
 from pydantic import BaseModel, EmailStr, Field
 
+#기능 성공 후 출력 메세지
 
 class UserSchema(BaseModel):
     id: int
     email: EmailStr
     name: str
     nickname: str
-    birth: date
 
 
     model_config = {"from_attributes": True}

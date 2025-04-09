@@ -1,4 +1,4 @@
-#백엔드에 접근한 IP 로그
+#백엔드 서버에 접근한 IP 로그
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request

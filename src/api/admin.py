@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from schema.request import IngredientCategoriesRequest
 from database.orm import IngredientCategories
 from core.connection import get_postgres_db
+
+#관리자 권한 라우터
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 

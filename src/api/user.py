@@ -5,7 +5,13 @@ from schema.request import SignUpRequest, LogInRequest
 from service.auth.social.google import GoogleAuthService
 from service.user_service import UserService
 from service.auth.social.naver import NaverAuthService
-from service.di import get_user_service, get_google_auth_service, get_naver_auth_service
+from service.di import (
+    get_user_service,
+    get_google_auth_service,
+    get_naver_auth_service
+)
+
+#유저 관련 라우터
 
 router = APIRouter(prefix="/users", tags=["User"])
 
@@ -16,7 +22,6 @@ async def user_sign_up(
 ):
     return await user_service.sign_up(request)
 
-
 @router.post("/log-in")
 async def user_log_in(
     request: LogInRequest,
@@ -25,7 +30,6 @@ async def user_log_in(
 ):
     return await user_service.log_in(request, req)
 
-
 # ---------------- 네이버 로그인 ----------------
 @router.get("/naver")
 async def naver_login(
@@ -33,7 +37,6 @@ async def naver_login(
 ):
     auth_url = await naver_auth_service.get_auth_url()
     return JSONResponse(content={"auth_url": auth_url})
-
 
 @router.get("/naver/callback")
 async def naver_callback(
@@ -45,12 +48,11 @@ async def naver_callback(
     redirect_url = await naver_auth_service.handle_naver_callback(code, state, request)
     return RedirectResponse(url=redirect_url)
 
-# ---------------- 구글 로그인(예정) ----------------
+# ---------------- 구글 로그인 ----------------
 @router.get("/google")
 async def google_login(google_auth_service: GoogleAuthService = Depends(get_google_auth_service)):
     auth_url = await google_auth_service.get_auth_url()
     return JSONResponse(content={"auth_url": auth_url})
-
 
 @router.get("/google/callback")
 async def google_callback(
@@ -62,3 +64,5 @@ async def google_callback(
 
     redirect_url = await google_auth_service.handle_google_callback(code, state, request)
     return RedirectResponse(url=redirect_url)
+
+# ---------------- 카카오 로그인(예정) ----------------

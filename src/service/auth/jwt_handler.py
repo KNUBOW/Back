@@ -1,10 +1,9 @@
-#jwt 토큰이 있는지 없는지 체크
-
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi import Depends, HTTPException
 
 from exception.auth_exception import UnauthorizedException
 
+#jwt 토큰이 있는지 없는지 체크
 
 def get_access_token(
         auth_header: HTTPAuthorizationCredentials | None = Depends(

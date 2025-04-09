@@ -22,7 +22,7 @@ class SocialUserInfoException(CustomException):
 
 class MissingSocialDataException(CustomException):
     log_level = "WARNING"
-    def __init__(self, detail="소셜 사용자 정보가 누락되었습니다 (개인 정보 다 수락해야함)"):
+    def __init__(self, detail="소셜 사용자 정보가 누락되었습니다. (개인 정보 다 수락해야함)"):
         super().__init__(status_code=400, detail=detail, code="MISSING_SOCIAL_DATA")
 
 class SocialSignupException(CustomException):

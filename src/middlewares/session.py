@@ -1,4 +1,4 @@
-# Redis(비동기 세션 관리 미들웨어)
+# Redis(비동기 세션 관련 미들웨어)
 
 import json
 import redis.asyncio as aioredis

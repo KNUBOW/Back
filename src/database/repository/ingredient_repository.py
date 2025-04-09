@@ -3,9 +3,6 @@ from sqlalchemy import select, delete, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timedelta
 
-from database.orm import Ingredient, ManualExpirationLog, UnrecognizedIngredientLog, IngredientCategories
-
-
 from exception.external_exception import UnexpectedException
 
 from sqlalchemy.exc import (
@@ -14,9 +11,18 @@ from sqlalchemy.exc import (
     SQLAlchemyError,
 )
 
+from database.orm import (
+    Ingredient,
+    ManualExpirationLog,
+    UnrecognizedIngredientLog,
+    IngredientCategories
+)
+
 from exception.database_exception import (
     TransactionException,
     DatabaseException)
+
+# 식재료 관련 리포지토리
 
 class IngredientRepository:
     def __init__(self, session: AsyncSession):
@@ -45,6 +51,7 @@ class IngredientRepository:
             await self.session.rollback()
             raise UnexpectedException(detail=f"예기치 못한 에러 발생: {str(e)}")
 
+    # 유통기한 카테고리 에서 유통기한 부여
     async def get_default_expiration(self, ingredient_name: str) -> Optional[int]:
         stmt = select(IngredientCategories.default_expiration_days).where(
             IngredientCategories.ingredient_name == ingredient_name
@@ -55,6 +62,7 @@ class IngredientRepository:
             return (datetime.utcnow() + timedelta(days=days)).date()
         return None
 
+    # 유저가 수동적으로 입력한 유통기한 로그 관련 (유통기한 편차 확인용)
     async def save_manual_expiration_log(self, user_id: int, ingredient_name: str, expiration_date: int, event_type: str):
         try:
             log = ManualExpirationLog(
@@ -69,6 +77,7 @@ class IngredientRepository:
             await self.session.rollback()
             raise UnexpectedException(detail=f"ManualExpirationLog 저장 실패: {str(e)}")
 
+    # 유저가 유통기한 부여하지 않고, 우리 DB에도 해당 식재료에 대한 유통기한 없을 때 확인하는 로그 (업데이트용)
     async def save_unrecognized_ingredient_log(self, user_id: int, ingredient_name: str):
         try:
             log = UnrecognizedIngredientLog(

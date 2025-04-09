@@ -1,5 +1,3 @@
-# DI(Dependency Injection)를 이용하여 라우터와 서비스에서 코드를 줄여 가독성 올림.
-
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,20 +11,16 @@ from service.recipe.foodthing import CookAIService
 from service.auth.social.naver import NaverAuthService
 from service.auth.jwt_handler import get_access_token
 
-# ----------------------
-# Repository DI
-# ----------------------
+# DI(Dependency Injection)를 이용하여 라우터와 서비스에서 코드를 줄여 가독성 올림.
 
+# ------------------- 리포지토리 관련 DI -------------------
 def get_user_repo(session: AsyncSession = Depends(get_postgres_db)) -> UserRepository:
     return UserRepository(session)
 
 def get_ingredient_repo(session: AsyncSession = Depends(get_postgres_db)) -> IngredientRepository:
     return IngredientRepository(session)
 
-# ----------------------
-# Service DI
-# ----------------------
-
+# ------------------- 서비스 관련 DI -------------------
 def get_user_service(user_repo: UserRepository = Depends(get_user_repo)) -> UserService:
     return UserService(user_repo)
 

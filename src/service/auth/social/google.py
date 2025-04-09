@@ -1,8 +1,7 @@
-import os
 import secrets
 import httpx
 
-from fastapi import HTTPException, Request
+from fastapi import Request
 from urllib.parse import urlencode
 
 from core.config import settings
@@ -10,18 +9,21 @@ from core.connection import RedisClient
 from database.orm import User
 from core.logging import security_log
 from database.repository.user_repository import UserRepository
-from exception.social_exception import InvalidStateException, SocialTokenException, SocialSignupException, \
-    MissingSocialDataException, SocialUserInfoException
 from service.user_service import UserService
+from exception.social_exception import (
+    InvalidStateException,
+    SocialTokenException,
+    SocialSignupException,
+    MissingSocialDataException,
+    SocialUserInfoException
+)
 
+# 구글 소셜 로그인 관련 서비스
 
 class GoogleAuthService:
     GOOGLE_CLIENT_ID = settings.GOOGLE_CLIENT_ID
     GOOGLE_CLIENT_SECRET = settings.GOOGLE_CLIENT_SECRET.get_secret_value()
     GOOGLE_REDIRECT_URI = settings.GOOGLE_REDIRECT_URI
-
-    GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
-    GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v1/userinfo"
 
     SCOPES = [
         "https://www.googleapis.com/auth/userinfo.email",
@@ -32,6 +34,7 @@ class GoogleAuthService:
         self.user_service = user_service
         self.user_repo = user_repo
 
+    # url 제공
     async def get_auth_url(self):
         state = secrets.token_urlsafe(16)
         redis = await RedisClient.get_redis()
@@ -49,6 +52,7 @@ class GoogleAuthService:
 
         return f"https://accounts.google.com/o/oauth2/v2/auth?{query}"
 
+    # state 확인
     async def validate_state(self, state: str, req: Request):
         redis = await RedisClient.get_redis()
         saved_state = await redis.get(f"google_state:{state}")
@@ -61,9 +65,10 @@ class GoogleAuthService:
             raise InvalidStateException()
         await redis.delete(f"google_state:{state}")
 
-    async def exchange_code_for_token(self, code: str) -> dict:
+    # 사용자 코드 -> 토큰으로 받음
+    async def get_token(self, code: str) -> dict:
         async with httpx.AsyncClient() as client:
-            response = await client.post(self.GOOGLE_TOKEN_URL, data={
+            response = await client.post("https://oauth2.googleapis.com/token", data={
                 "code": code,
                 "client_id": self.GOOGLE_CLIENT_ID,
                 "client_secret": self.GOOGLE_CLIENT_SECRET,
@@ -74,17 +79,19 @@ class GoogleAuthService:
                 raise SocialTokenException(detail="access_token 요청 실패")
             return response.json()
 
+    # 유저 정보 요청
     async def get_user_info(self, access_token: str) -> dict:
         headers = {"Authorization": f"Bearer {access_token}"}
         async with httpx.AsyncClient() as client:
-            response = await client.get(self.GOOGLE_USERINFO_URL, headers=headers)
+            response = await client.get("https://www.googleapis.com/oauth2/v1/userinfo", headers=headers)
             if response.status_code != 200:
                 raise SocialUserInfoException(detail=f"사용자 정보 요청 실패: {response.status_code}")
             return response.json()
 
+    # code와 state 기반으로 유저 토큰 받고 사용자 정보를 가져옴
     async def handle_google_callback(self, code: str, state: str, req: Request) -> str:
         await self.validate_state(state, req)
-        token_data = await self.exchange_code_for_token(code)
+        token_data = await self.get_token(code)
 
         access_token = token_data.get("access_token")
         if not access_token:
@@ -93,6 +100,7 @@ class GoogleAuthService:
         user_info = await self.get_user_info(access_token)
         return await self.handle_login_or_signup(user_info)
 
+    # 사용자 정보 받은것을 기반으로 로그인 또는 회원가입함
     async def handle_login_or_signup(self, user_info: dict) -> str:
         nickname = user_info.get("id")
         email = user_info.get("email")
@@ -107,6 +115,7 @@ class GoogleAuthService:
             token = self.user_service.create_jwt(email=user.email)
             return f"http://프론트엔드서버/auth/success?token={token}"
 
+        #유저정보가 없으면 회원가입 진행
         try:
             password = secrets.token_urlsafe(12)
             hashed_password = self.user_service.hash_password(password)

@@ -25,14 +25,7 @@ from service.user_service import UserService
 from service.recipe.prompt_builder import PromptBuilder
 from core.logging import service_log
 
-def get_cook_ai(
-    access_token: str = Depends(get_access_token),
-    user_service: UserService = Depends(),
-    user_repo: UserRepository = Depends(),
-    req: Request = Depends()
-):
-    return CookAIService(user_service, user_repo, access_token, req)
-
+# LLM 서비스 관련
 
 class CookAIService:
     def __init__(self, user_service: UserService, user_repo: UserRepository, access_token: str, req: Request):
@@ -44,6 +37,7 @@ class CookAIService:
         self.access_token = access_token
         self.req = req
 
+    # 유저 정보 확인
     async def _get_authenticated_user(self):
         try:
             user = await self.user_service.get_user_by_token(self.access_token, self.req)
@@ -57,6 +51,7 @@ class CookAIService:
 
         return user
 
+    # 식재료 조회
     async def get_user_ingredients(self):
         user = await self._get_authenticated_user()
 
@@ -69,13 +64,14 @@ class CookAIService:
 
         return [name for (name,) in ingredients.all()]
 
+    # ollama 호출
     async def call_ollama(self, prompt):
         health_url = self.ollama_url.replace("/api/generate", "/")
         timeout = httpx.Timeout(50.0)
 
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
-                # ✅ 서버 확인 먼저
+                # 서버 확인 먼저 (필요없는 로딩 없애기 위해)
                 await client.get(health_url)
         except httpx.RequestError as e:
             raise AIServiceException(detail=f"Ollama 서버에 연결할 수 없습니다: {str(e)}")
@@ -111,6 +107,7 @@ class CookAIService:
         except json.JSONDecodeError:
             raise AIJsonDecodeException(detail=f"응답 파싱 실패: {response_text}")
 
+    # 만들 수 있는 요리 리스트 출력
     async def get_suggest_recipes(self):
         user = await self._get_authenticated_user()
         user_ingredients = await self.get_user_ingredients()
@@ -120,6 +117,7 @@ class CookAIService:
         prompt = PromptBuilder.build_suggestion_prompt(user_ingredients)
         return await self.call_ollama(prompt)
 
+    # 요리 레시피 출력
     async def get_food_recipe(self, request_data: dict):
         user = await self._get_authenticated_user()
 
@@ -134,12 +132,14 @@ class CookAIService:
         prompt = PromptBuilder.build_recipe_prompt(food, use_ingredients)
         return await self.call_ollama(prompt)
 
+    # 간단한 입력식 레시피 출력 (식재료만 입력)
     async def get_quick_recipe(self, chat: str):
         user = await self._get_authenticated_user()
         prompt = PromptBuilder.build_quick_prompt(chat)
-        service_log("RecipeService", f"빠른 AI 레시피 요청: '{chat}'", user_id=user.id)
+        service_log("RecipeService", f"입력식 AI 레시피 요청: '{chat}'", user_id=user.id)
         return await self.call_ollama(prompt)
 
+    # 레시피 검색(식재료 없이 요리이름만 입력)
     async def get_search_recipe(self, chat: str):
         user = await self._get_authenticated_user()
         prompt = PromptBuilder.build_search_prompt(chat)

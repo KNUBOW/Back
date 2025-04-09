@@ -15,7 +15,7 @@ def kst_converter(*args):
 LOG_DIR = "/app/logs"
 os.makedirs(LOG_DIR, exist_ok=True)
 
-# 공통 포맷터
+# 포매터 설정
 formatter = logging.Formatter(
     "[%(asctime)s] [%(levelname)s] %(name)s: %(message)s",
     "%Y-%m-%d %H:%M:%S"
@@ -49,10 +49,10 @@ def setup_logging():
     for name in LOG_FILES:
         logger = logging.getLogger(f"capstone.{name}")
         logger.setLevel(logging.INFO)
-        logger.handlers = []  # 중복 방지
+        logger.handlers = []
         logger.addHandler(create_file_handler(name))
 
-        # 콘솔에도 출력하고 싶다면 아래 줄 활성화
+        # 콘솔 출력
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(formatter)
         console_handler.setLevel(logging.WARNING)
@@ -62,6 +62,7 @@ def setup_logging():
 
     return loggers
 
+# 비즈니스 로그 추적
 def service_log(service: str, message: str, user_id: int | None = None, level: str = "INFO"):
     tag = f"[{service}]"
     user_info = f"유저({user_id})" if user_id else "익명 사용자"
@@ -74,7 +75,7 @@ def service_log(service: str, message: str, user_id: int | None = None, level: s
         case "ERROR": logger.error(log_msg)
         case _: logger.info(log_msg)
 
-
+# 보안 로그 설정
 def security_log(event: str, detail: str, user_id: int = None, ip: str = None, level: str = "WARNING"):
     logger = loggers["security"]
     message = f"[Security] {event} | {detail}"

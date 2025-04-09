@@ -2,6 +2,7 @@ from pydantic_settings import BaseSettings
 from pydantic import SecretStr
 from typing import Literal
 
+# 민감한 정보 보호
 
 class Settings(BaseSettings):
     # user_service.py

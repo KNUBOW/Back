@@ -1,11 +1,10 @@
-#연결 설정, 세션 관리
 import aioredis
 
 from sqlalchemy.orm import sessionmaker
 from core.config import settings
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
-
+#연결 설정, 세션 관리
 
 # PostgreSQL 연결 설정 (비동기식)
 POSTGRES_DATABASE_URL = settings.POSTGRES_DATABASE_URL

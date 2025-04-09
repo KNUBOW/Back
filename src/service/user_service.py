@@ -34,6 +34,7 @@ class UserService:
     def __init__(self, user_repo: UserRepository):
         self.user_repo = user_repo
 
+    # 비밀번호 해쉬 처리
     def hash_password(self, plain_password: str) -> str:
         hashed_password: bytes = bcrypt.hashpw(
             plain_password.encode(self.encoding),
@@ -41,12 +42,14 @@ class UserService:
         )
         return hashed_password.decode(self.encoding)
 
+    # 해쉬 검증
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         return bcrypt.checkpw(
             plain_password.encode(self.encoding),
             hashed_password.encode(self.encoding)
         )
 
+    # jwt 생성
     def create_jwt(self, email: str) -> str:
         return jwt.encode(
             {
@@ -57,6 +60,7 @@ class UserService:
             algorithm=self.jwt_algorithm,
         )
 
+    #jwt 복호화
     def decode_jwt(self, access_token: str, req: Request) -> str:
         try:
             payload: dict = jwt.decode(
@@ -82,13 +86,14 @@ class UserService:
             )
             raise TokenExpiredException()
 
+    # 회원가입 관련
     async def sign_up(self, request: SignUpRequest):
         # 중복 확인
         try:
-            if await self.user_repo.get_user_by_email(request.email):
+            if await self.user_repo.get_user_by_email(request.email):   # 이메일 중복
                 raise DuplicateEmailException()
 
-            if await self.user_repo.get_user_by_nickname(request.nickname):
+            if await self.user_repo.get_user_by_nickname(request.nickname): # 닉네임 중복
                 raise DuplicateNicknameException()
 
             hashed_password = self.hash_password(request.password)
@@ -111,6 +116,7 @@ class UserService:
         except Exception as e:
             raise UnexpectedException(detail=f"회원가입 중 예기치 못한 오류 발생: {str(e)}")
 
+    # 로그인 관련
     async def log_in(self, request: LogInRequest, req: Request):
         user = await self.user_repo.get_user_by_email(email=request.email)
         if not user:
@@ -134,6 +140,7 @@ class UserService:
         access_token = self.create_jwt(email=user.email)
         return JWTResponse(access_token=access_token)
 
+    # 유저의 토큰 조회
     async def get_user_by_token(self, access_token: str, req: Request) -> User:
         email: str = self.decode_jwt(access_token=access_token, req=req)
         user: User | None = await self.user_repo.get_user_by_email(email=email)

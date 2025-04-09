@@ -4,6 +4,8 @@ from service.recipe.foodthing import CookAIService
 from schema.request import CookingRequest
 from service.di import get_cook_ai_service
 
+#LLM 관련 라우터
+
 router = APIRouter(prefix="/recipe", tags=["Recipe"])
 
 @router.get("/suggest", status_code=200)

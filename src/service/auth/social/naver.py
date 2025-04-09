@@ -19,6 +19,8 @@ from exception.social_exception import (
     SocialSignupException,
 )
 
+# 네이버 소셜 로그인 관련 서비스
+
 class NaverAuthService:
     CLIENT_ID = settings.NAVER_CLIENT_ID
     CLIENT_SECRET = settings.NAVER_CLIENT_SECRET.get_secret_value()
@@ -28,6 +30,7 @@ class NaverAuthService:
         self.user_service = user_service
         self.user_repo = user_repo
 
+    # url 제공
     async def get_auth_url(self):
         state = secrets.token_urlsafe(16)
         redis = await RedisClient.get_redis()
@@ -41,6 +44,7 @@ class NaverAuthService:
             f"&state={state}"
         )
 
+    # state 확인
     async def validate_state(self, state: str, req: Request):
         redis = await RedisClient.get_redis()
         saved_state = await redis.get(f"naver_state:{state}")
@@ -53,6 +57,7 @@ class NaverAuthService:
             raise InvalidStateException()
         await redis.delete(f"naver_state:{state}")
 
+    # 사용자 코드 -> 토큰으로 받음
     async def get_token(self, code: str, state: str):
         token_url = "https://nid.naver.com/oauth2.0/token"
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
@@ -75,6 +80,7 @@ class NaverAuthService:
 
             return token_data
 
+    # 유저 정보 요청
     async def get_user_info(self, access_token: str):
         user_info_url = "https://openapi.naver.com/v1/nid/me"
         headers = {"Authorization": f"Bearer {access_token}"}
@@ -90,6 +96,7 @@ class NaverAuthService:
 
             return data["response"]
 
+    # code와 state 기반으로 유저 토큰 받고 사용자 정보를 가져옴
     async def handle_naver_callback(self, code: str, state: str, req: Request):
         await self.validate_state(state, req)
         token_data = await self.get_token(code, state)
@@ -100,6 +107,7 @@ class NaverAuthService:
         user_info = await self.get_user_info(access_token)
         return await self.handle_login_or_signup(user_info)
 
+    # 사용자 정보 받은것을 기반으로 로그인 또는 회원가입함
     async def handle_login_or_signup(self, user_info: dict):
         email = user_info.get("email")
         name = user_info.get("name")
@@ -111,6 +119,7 @@ class NaverAuthService:
         if not all([email, name, nickname, gender, birthday, birthyear]):
             raise MissingSocialDataException()
 
+        # 생년월일 양식에 맞게 포매팅
         try:
             birthday = "-".join(part.zfill(2) for part in birthday.split("-"))
             birth = f"{birthyear}-{birthday}"
@@ -124,7 +133,7 @@ class NaverAuthService:
             token = self.user_service.create_jwt(email=user.email)
             return f"http://프론트엔드서버/auth/success?token={token}"
 
-        # 유저가 없으면 회원가입 진행
+        # 유저정보가 없으면 회원가입 진행
         try:
             password = secrets.token_urlsafe(12)
             hashed_password = self.user_service.hash_password(password)
