@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Body
 
 from service.recipe.foodthing import CookAIService
 from schema.request import CookingRequest
-from service.di import get_cook_ai_service
+from dependencies.di import get_cook_ai_service
 
 #LLM 관련 라우터
 

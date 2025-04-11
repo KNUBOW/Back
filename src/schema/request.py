@@ -7,7 +7,7 @@ from typing import Literal, Optional, List
 
 class SignUpRequest(BaseModel):
     email: EmailStr = Field(..., description="이메일 주소(아이디), 이메일 형식이어야댐")
-    password: constr(min_length=8, max_length=255) = Field(..., description="비밀번호 (8~255자)")
+    password: constr(min_length=8, max_length=20) = Field(..., description="비밀번호 (8~20자)")
     name: constr(min_length=2, max_length=20) = Field(..., description="이름 (2~20자)")
     nickname: constr(min_length=2, max_length=20) = Field(..., description="닉네임 (2~20자) 소셜만 70자까지임")
     birth: date = Field(..., description="생년월일 (YYYY-MM-DD)")
@@ -17,6 +17,11 @@ class SignUpRequest(BaseModel):
 class LogInRequest(BaseModel):
     email: EmailStr = Field(..., description="이메일 주소")
     password: str = Field(..., description="비밀번호")
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+    confirm_new_password: str
 
 
 class IngredientRequest(BaseModel): # 단일 추가용

@@ -9,7 +9,8 @@ from exception.external_exception import UnexpectedException
 from exception.auth_exception import (
     TokenExpiredException,
     InvalidCredentialsException,
-    UserNotFoundException
+    UserNotFoundException, IncorrectPasswordException, PasswordUnchangedException, PasswordMismatchException,
+    PasswordLengthException
 )
 
 from exception.user_exception import (
@@ -85,6 +86,22 @@ class UserService:
                 ip=req.client.host
             )
             raise TokenExpiredException()
+
+    async def change_password(self, user: User, current_password: str, new_password: str, confirm_new_password: str):
+        if not self.verify_password(current_password, user.password):
+            raise IncorrectPasswordException()
+
+        if self.verify_password(new_password, user.password):
+            raise PasswordUnchangedException()
+
+        if new_password != confirm_new_password:
+            raise PasswordMismatchException()
+
+        if len(new_password) < 8 or len(new_password) > 20:
+            raise PasswordLengthException()
+
+        hashed = self.hash_password(new_password)
+        await self.user_repo.update_password(user, hashed)
 
     # 회원가입 관련
     async def sign_up(self, request: SignUpRequest):

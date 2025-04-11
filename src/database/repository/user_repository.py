@@ -3,15 +3,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sqlalchemy.exc import (
-    IntegrityError,
     SQLAlchemyError,
-    InvalidRequestError
 )
 
 from exception.database_exception import (
     DatabaseException,
-    TransactionException
 )
+
+from utils.base_repository import commit_with_error_handling
 
 from exception.external_exception import UnexpectedException
 from database.orm import User
@@ -23,34 +22,32 @@ class UserRepository:
         self.session = session
 
     async def get_user_by_email(self, email: str) -> Optional[User]:
-        stmt = select(User).filter(User.email == email)
-        result = await self.session.execute(stmt)
-        return result.scalar()
+        try:
+            stmt = select(User).where(User.email == email)
+            result = await self.session.execute(stmt)
+            return result.scalar_one_or_none()
+        except SQLAlchemyError as e:
+            raise DatabaseException(detail=f"DB 조회 오류: {str(e)}")
+        except Exception as e:
+            raise UnexpectedException(detail=f"예기치 못한 에러: {str(e)}")
 
     async def get_user_by_nickname(self, nickname: str) -> Optional[User]:
-        stmt = select(User).filter(User.nickname == nickname)
-        result = await self.session.execute(stmt)
-        return result.scalar()
+        try:
+            stmt = select(User).where(User.nickname == nickname)
+            result = await self.session.execute(stmt)
+            return result.scalar_one_or_none()
+        except SQLAlchemyError as e:
+            raise DatabaseException(detail=f"DB 조회 오류: {str(e)}")
+        except Exception as e:
+            raise UnexpectedException(detail=f"예기치 못한 에러: {str(e)}")
 
     async def save_user(self, user: User) -> User:
-        try:
-            self.session.add(user)
-            await self.session.commit()
-            await self.session.refresh(user)
-            return user
+        self.session.add(user)
+        await commit_with_error_handling(self.session, context="유저 저장")
+        await self.session.refresh(user)
+        return user
 
-        except InvalidRequestError: #트랜젝션 관련 에러
-            await self.session.rollback()
-            raise TransactionException()
-
-        except IntegrityError:  # 중복 관련 오류
-            await self.session.rollback()
-            raise DatabaseException(detail=f"제약 조건 위반: 이메일, 닉네임 중복 등")
-
-        except SQLAlchemyError as e:    # DB 오류
-            await self.session.rollback()
-            raise DatabaseException(detail=f"DB 처리 중 오류: {str(e)}")
-
-        except Exception as e:  # 알 수 없는 에러
-            await self.session.rollback()
-            raise UnexpectedException(detail=f"예기치 못한 에러 발생: {str(e)}")
+    async def update_password(self, user: User, hashed_password: str) -> None:
+        user.password = hashed_password
+        self.session.add(user)
+        await commit_with_error_handling(self.session, context="비밀번호 변경")

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Body
+from fastapi import APIRouter, Depends
 from typing import List
 
 from schema.request import IngredientRequest
@@ -9,7 +9,7 @@ from schema.response import (
 )
 
 from service.ingredient_service import IngredientService
-from service.di import get_ingredient_service
+from dependencies.di import get_ingredient_service
 
 #식재료 관련 라우터
 
