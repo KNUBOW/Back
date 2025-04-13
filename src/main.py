@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from contextlib import asynccontextmanager
 
-from api import user, ingredient, recipe
+from api import user, ingredient, recipe, admin
 from core.config import settings
 from core.connection import AsyncSessionLocal, RedisClient
 from core.logging import loggers
@@ -91,6 +91,7 @@ app.add_middleware(AccessLogMiddleware)
 app.include_router(user.router)
 app.include_router(ingredient.router)
 app.include_router(recipe.router)
+app.include_router(admin.router)
 
 @app.get("/")
 def hello_world():

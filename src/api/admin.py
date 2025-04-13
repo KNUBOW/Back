@@ -1,28 +1,33 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends
 
+from dependencies.di import get_admin_service
 from schema.request import IngredientCategoriesRequest
-from database.orm import IngredientCategories
-from core.connection import get_postgres_db
+from schema.response import CategorySchema, CategoryListSchema
+from service.admin_service import AdminService
 
 #관리자 권한 라우터
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
 @router.post("/categories", status_code=201)
-async def add_categories(
+async def add_category(
     request: IngredientCategoriesRequest,
-    db: Session = Depends(get_postgres_db)
+    admin_service: AdminService = Depends(get_admin_service)
 ):
-    existing = db.query(IngredientCategories).filter_by(name=request.name).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="이미 존재하는 카테고리입니다.")
+    return await admin_service.create_category(request)
 
-    new_category = IngredientCategories.create(request)
-    db.add(new_category)
-    db.commit()
-    db.refresh(new_category)
-    return {
-        "id": new_category.id,
-        "message": "카테고리가 성공적으로 등록되었습니다."
-    }
+@router.get("/categories", status_code=200, response_model=CategoryListSchema)
+async def get_categories(
+    admin_service: AdminService = Depends(get_admin_service)
+):
+    return await admin_service.get_categories()
+
+@router.delete("/categories/{ingredient_name}", status_code=204)
+async def delete_category(
+    ingredient_name: str,
+    admin_service: AdminService = Depends(get_admin_service)
+):
+    return await admin_service.delete_category(ingredient_name)
+
+#@router.get("/logs/unrecognized_ingredient_log", status_code=200)
+#@router.get("/logs/manual_expiration_logs", status_code=200)

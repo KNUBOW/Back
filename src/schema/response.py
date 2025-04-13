@@ -31,3 +31,18 @@ class BulkCreateResponseSchema(BaseModel):
     message: str
     created: List[IngredientSchema]
     skipped_duplicates: List[str]
+
+class CategorySchema(BaseModel):
+    ingredient_name: str
+    parent_category: str | None
+    child_category: str | None
+    default_expiration_days: int
+
+    model_config = {
+        "from_attributes": True  # ✅ v2에서는 이걸 써야 ORM 연동 가능
+    }
+
+class CategoryListSchema(BaseModel):
+    categories: List[CategorySchema]
+
+    model_config = {"from_attributes": True}

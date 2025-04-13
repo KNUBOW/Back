@@ -42,7 +42,7 @@ class CookingRequest(BaseModel):
 
 
 class IngredientCategoriesRequest(BaseModel):
-    name: str = Field(..., description="식재료 이름", max_length=50)
+    ingredient_name: str = Field(..., description="식재료 이름", max_length=50)
     parent_category: Optional[str] = Field(None, description="부모 카테고리", max_length=50)
     child_category: Optional[str] = Field(None, description="자식 카테고리", max_length=50)
     default_expiration_days: int = Field(..., ge=1, description="기본 유통기한 (일 단위)")

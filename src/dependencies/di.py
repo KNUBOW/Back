@@ -1,9 +1,11 @@
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from database.repository.admin_repository import AdminRepository
 from database.repository.ingredient_repository import IngredientRepository
 from database.repository.user_repository import UserRepository
 from core.connection import get_postgres_db
+from service.admin_service import AdminService
 from service.auth.social.google import GoogleAuthService
 from service.user_service import UserService
 from service.ingredient_service import IngredientService
@@ -20,9 +22,21 @@ def get_user_repo(session: AsyncSession = Depends(get_postgres_db)) -> UserRepos
 def get_ingredient_repo(session: AsyncSession = Depends(get_postgres_db)) -> IngredientRepository:
     return IngredientRepository(session)
 
+def get_admin_repo(session: AsyncSession = Depends(get_postgres_db)) -> AdminRepository:
+    return AdminRepository(session)
+
 # ------------------- 서비스 관련 DI -------------------
 def get_user_service(user_repo: UserRepository = Depends(get_user_repo)) -> UserService:
     return UserService(user_repo)
+
+def get_admin_service(
+    req: Request,
+    access_token: str = Depends(get_access_token),
+    user_repo: UserRepository = Depends(get_user_repo),
+    admin_repo: AdminRepository = Depends(get_admin_repo),
+    user_service: UserService = Depends(get_user_service),
+) -> AdminService:
+    return AdminService(user_repo, admin_repo, user_service, access_token, req)
 
 def get_ingredient_service(
     req: Request,

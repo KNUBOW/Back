@@ -1,7 +1,7 @@
 from typing import Optional
 from datetime import datetime
 
-from sqlalchemy import Column, BigInteger, String, ForeignKey, Date, Enum, TIMESTAMP, text, Integer
+from sqlalchemy import Column, BigInteger, String, ForeignKey, Date, Enum, TIMESTAMP, text, Integer, Boolean
 from sqlalchemy.orm import declarative_base, relationship
 
 from schema.request import IngredientRequest, IngredientCategoriesRequest
@@ -23,7 +23,7 @@ class User(Base):
     birth = Column(Date)
     gender = Column(Enum("M", "F", name="gender_enum"))
     social_auth = Column(Enum("G", "N", "K", name="social_auth_enum"))
-    #admin_grade = Column(Integer) 아직 준비안됨
+    is_admin = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False)
 
     @classmethod
@@ -70,6 +70,7 @@ class IngredientCategories(Base):
     __tablename__ = "ingredient_categories"
 
     id = Column(BigInteger, primary_key=True, index=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     ingredient_name = Column(String(40), nullable=False, unique=True)
     parent_category = Column(String(20))
     child_category = Column(String(20))
@@ -78,7 +79,7 @@ class IngredientCategories(Base):
     @classmethod
     def create(cls, request: IngredientCategoriesRequest) -> "IngredientCategories":
         return cls(
-            name=request.name,
+            ingredient_name=request.ingredient_name,
             parent_category=request.parent_category,
             child_category=request.child_category,
             default_expiration_days=request.default_expiration_days
