@@ -6,7 +6,7 @@ from database.repository.user_repository import UserRepository
 from exception.admin_exception import AdminPermissionException, DuplicateCategoryException, \
     InvalidCategoryNestingException, CategoryNotFoundException
 from exception.external_exception import UnexpectedException
-from schema.request import IngredientCategoriesRequest
+from schema.request import IngredientCategoriesRequest, IngredientCategoryUpdateRequest
 from schema.response import CategorySchema, CategoryListSchema
 from service.user_service import UserService
 from database.orm import User
@@ -53,9 +53,9 @@ class AdminService:
             raise UnexpectedException(detail=f"카테고리 생성 중 알 수 없는 오류: {str(e)}")
 
         return {
-            "식재료명": new_category.ingredient_name,
-            "설정한 유통기한": new_category.default_expiration_days,
-            "메세지": "카테고리가 성공적으로 등록되었습니다."
+            "ingredient_name": new_category.ingredient_name,
+            "set_expiration": new_category.default_expiration_days,
+            "message": "카테고리가 성공적으로 등록되었습니다."
         }
 
     async def get_categories(self) -> CategoryListSchema:
@@ -82,3 +82,19 @@ class AdminService:
         return {
             "message": f"카테고리 '{ingredient_name}'가 성공적으로 삭제되었습니다."
         }
+
+    async def update_category(self, request: IngredientCategoryUpdateRequest):
+        user = await self.get_admin_user()
+
+        target = await self.admin_repo.get_category_by_name(request.ingredient_name)
+        if not target:
+            raise CategoryNotFoundException()
+
+        success = await self.admin_repo.update_category_expiration(
+            ingredient_name=request.ingredient_name,
+            new_expiration=request.default_expiration_days
+        )
+        if not success:
+            raise UnexpectedException(detail="카테고리 수정 중 DB에서 해당 항목을 찾을 수 없습니다.")
+
+        return {"message": f"'{request.ingredient_name}' 유통기한이 {request.default_expiration_days}일로 수정되었습니다."}

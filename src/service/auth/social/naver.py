@@ -98,8 +98,12 @@ class NaverAuthService:
 
     # code와 state 기반으로 유저 토큰 받고 사용자 정보를 가져옴
     async def handle_naver_callback(self, code: str, state: str, req: Request):
+        if not code or not state:
+            raise SocialTokenException(detail="code 또는 state 파라미터 누락됨")
+
         await self.validate_state(state, req)
         token_data = await self.get_token(code, state)
+
         access_token = token_data.get("access_token")
         if not access_token:
             raise SocialTokenException(detail="access_token 누락됨")

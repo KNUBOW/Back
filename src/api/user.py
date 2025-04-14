@@ -31,7 +31,7 @@ async def user_log_in(
 ):
     return await user_service.log_in(request, req)
 
-@router.post("/change-password")
+@router.patch("/change-password", status_code=204)
 async def change_password(
     request: PasswordChangeRequest,
     access_token: str = Depends(get_access_token),
@@ -46,9 +46,6 @@ async def change_password(
         new_password=request.new_password,
         confirm_new_password=request.confirm_new_password
     )
-
-    return {"message": "비밀번호가 성공적으로 변경되었습니다."}
-
 # ---------------- 네이버 로그인 ----------------
 @router.get("/naver")
 async def naver_login(
@@ -57,21 +54,23 @@ async def naver_login(
     auth_url = await naver_auth_service.get_auth_url()
     return JSONResponse(content={"auth_url": auth_url})
 
+@router.get("/google")
+async def google_login(
+    google_auth_service: GoogleAuthService = Depends(get_google_auth_service),
+):
+    auth_url = await google_auth_service.get_auth_url()
+    return JSONResponse(content={"auth_url": auth_url})
+
 @router.get("/naver/callback")
 async def naver_callback(
     request: Request,
+    code: str = None,
+    state: str = None,
     naver_auth_service: NaverAuthService = Depends(get_naver_auth_service),
 ):
-    code = request.query_params.get("code")
-    state = request.query_params.get("state")
     redirect_url = await naver_auth_service.handle_naver_callback(code, state, request)
     return RedirectResponse(url=redirect_url)
-
 # ---------------- 구글 로그인 ----------------
-@router.get("/google")
-async def google_login(google_auth_service: GoogleAuthService = Depends(get_google_auth_service)):
-    auth_url = await google_auth_service.get_auth_url()
-    return JSONResponse(content={"auth_url": auth_url})
 
 @router.get("/google/callback")
 async def google_callback(
@@ -83,5 +82,3 @@ async def google_callback(
 
     redirect_url = await google_auth_service.handle_google_callback(code, state, request)
     return RedirectResponse(url=redirect_url)
-
-# ---------------- 카카오 로그인(예정) ----------------

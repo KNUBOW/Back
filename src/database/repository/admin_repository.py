@@ -1,7 +1,9 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.orm import IngredientCategories
+from exception.admin_exception import CategoryNotFoundException
 from schema.request import IngredientCategoriesRequest
+from utils.base_repository import commit_with_error_handling
 
 #관리자 권한 리포지토리
 
@@ -24,7 +26,7 @@ class AdminRepository:
             default_expiration_days=request.default_expiration_days
         )
         self.session.add(new_category)
-        await self.session.commit()
+        await commit_with_error_handling(self.session, context="카테고리 생성")
         await self.session.refresh(new_category)
         return new_category
 
@@ -40,5 +42,15 @@ class AdminRepository:
             return False
 
         await self.session.delete(category)
-        await self.session.commit()
+        await commit_with_error_handling(self.session, context=f"{ingredient_name} 카테고리 삭제")
+        return True
+
+    async def update_category_expiration(self, ingredient_name: str, new_expiration: int) -> bool:
+        category = await self.get_category_by_name(ingredient_name)
+        if not category:
+            return False
+
+        category.default_expiration_days = new_expiration
+        await commit_with_error_handling(self.session, context=f"[{ingredient_name}] 카테고리 유통기한 수정")
+        await self.session.refresh(category)
         return True
